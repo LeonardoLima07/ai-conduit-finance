@@ -1,24 +1,28 @@
 import {
   BarChart3, FileText, PieChart, Settings, Brain, CreditCard,
-  TrendingUp, LogOut, ChevronLeft, ChevronRight,
+  TrendingUp, LogOut, ChevronLeft, ChevronRight, BookOpen,
+  MessageSquare, Users, ClipboardList,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 
 const navItems = [
   { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
-  { icon: FileText, label: "Invoices", to: "/dashboard/invoices" },
-  { icon: PieChart, label: "Reports", to: "/dashboard/reports" },
+  { icon: FileText, label: "Notas Fiscais", to: "/dashboard/invoices" },
+  { icon: Users, label: "Clientes", to: "/dashboard/clients" },
+  { icon: PieChart, label: "Relatórios", to: "/dashboard/reports" },
+  { icon: ClipboardList, label: "Relatório Mensal", to: "/dashboard/monthly-report" },
   { icon: Brain, label: "AI Advisor", to: "/dashboard/advisor" },
-  { icon: CreditCard, label: "Transactions", to: "/dashboard/transactions" },
-  { icon: TrendingUp, label: "Forecast", to: "/dashboard/forecast" },
-  { icon: Settings, label: "Settings", to: "/dashboard/settings" },
+  { icon: CreditCard, label: "Transações", to: "/dashboard/transactions" },
+  { icon: TrendingUp, label: "Previsão", to: "/dashboard/forecast" },
+  { icon: BookOpen, label: "Aprender", to: "/dashboard/education" },
+  { icon: MessageSquare, label: "Feedback", to: "/dashboard/feedback" },
+  { icon: Settings, label: "Configurações", to: "/dashboard/settings" },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
 
   return (
     <div className="flex min-h-screen">
@@ -43,7 +47,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        <nav className="flex-1 p-2 space-y-1">
+        <nav className="flex-1 p-2 space-y-1 overflow-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -64,14 +68,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary"
           >
             {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            {!collapsed && <span>Collapse</span>}
+            {!collapsed && <span>Recolher</span>}
           </button>
           <Link
             to="/"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary"
           >
             <LogOut className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Log out</span>}
+            {!collapsed && <span>Sair</span>}
           </Link>
         </div>
       </aside>

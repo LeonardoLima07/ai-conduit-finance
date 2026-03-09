@@ -10,11 +10,16 @@ import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPage from "./pages/PricingPage";
 import LoginPage from "./pages/LoginPage";
+import OnboardingPage from "./pages/OnboardingPage";
 import DashboardPage from "./pages/DashboardPage";
 import InvoicesPage from "./pages/InvoicesPage";
+import ClientsPage from "./pages/ClientsPage";
 import ReportsPage from "./pages/ReportsPage";
+import MonthlyReportPage from "./pages/MonthlyReportPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdvisorPage from "./pages/AdvisorPage";
+import EducationPage from "./pages/EducationPage";
+import FeedbackPage from "./pages/FeedbackPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,11 +45,16 @@ const App = () => (
           <Route path="/features" element={<PublicLayout><FeaturesPage /></PublicLayout>} />
           <Route path="/pricing" element={<PublicLayout><PricingPage /></PublicLayout>} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
           <Route path="/dashboard/invoices" element={<DashboardLayout><InvoicesPage /></DashboardLayout>} />
+          <Route path="/dashboard/clients" element={<DashboardLayout><ClientsPage /></DashboardLayout>} />
           <Route path="/dashboard/reports" element={<DashboardLayout><ReportsPage /></DashboardLayout>} />
+          <Route path="/dashboard/monthly-report" element={<DashboardLayout><MonthlyReportPage /></DashboardLayout>} />
           <Route path="/dashboard/settings" element={<DashboardLayout><SettingsPage /></DashboardLayout>} />
           <Route path="/dashboard/advisor" element={<DashboardLayout><AdvisorPage /></DashboardLayout>} />
+          <Route path="/dashboard/education" element={<DashboardLayout><EducationPage /></DashboardLayout>} />
+          <Route path="/dashboard/feedback" element={<DashboardLayout><FeedbackPage /></DashboardLayout>} />
           <Route path="/dashboard/transactions" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
           <Route path="/dashboard/forecast" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
           <Route path="*" element={<NotFound />} />
