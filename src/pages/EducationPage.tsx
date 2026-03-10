@@ -1,60 +1,87 @@
-import { Play, BookOpen, Clock, ChevronRight } from "lucide-react";
+import { Play, BookOpen, Clock, GraduationCap, CheckCircle2, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Progress } from "@/components/ui/progress";
 
 const categories = ["Todos", "Primeiros Passos", "Notas Fiscais", "Relatórios", "AI Assistant", "Finanças"];
 
 const tutorials = [
   {
     id: 1, title: "Como começar no Contuit", duration: "5 min",
-    category: "Primeiros Passos", thumbnail: "🚀",
+    category: "Primeiros Passos", thumbnail: "🚀", difficulty: "Iniciante",
     description: "Aprenda a configurar sua conta e dar os primeiros passos na plataforma.",
+    steps: ["Criar conta", "Configurar empresa", "Adicionar primeiro cliente"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 2, title: "Emitindo sua primeira nota fiscal", duration: "8 min",
-    category: "Notas Fiscais", thumbnail: "📄",
+    category: "Notas Fiscais", thumbnail: "📄", difficulty: "Iniciante",
     description: "Guia completo para criar e enviar notas fiscais com cálculo automático de impostos.",
+    steps: ["Selecionar cliente", "Preencher serviços", "Revisar impostos", "Emitir NF"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 3, title: "Entendendo o Dashboard Financeiro", duration: "6 min",
-    category: "Finanças", thumbnail: "📊",
+    category: "Finanças", thumbnail: "📊", difficulty: "Iniciante",
     description: "Como ler e interpretar os gráficos e métricas do seu painel financeiro.",
+    steps: ["KPIs principais", "Gráfico de receita", "Health Score", "Insights AI"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 4, title: "Usando o AI Business Advisor", duration: "7 min",
-    category: "AI Assistant", thumbnail: "🤖",
+    category: "AI Assistant", thumbnail: "🤖", difficulty: "Intermediário",
     description: "Descubra como fazer perguntas ao seu assistente AI e obter insights personalizados.",
+    steps: ["Abrir o Advisor", "Tipos de perguntas", "Interpretar respostas"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 5, title: "Relatórios contábeis explicados", duration: "10 min",
-    category: "Relatórios", thumbnail: "📈",
+    category: "Relatórios", thumbnail: "📈", difficulty: "Intermediário",
     description: "Entenda DRE, balanço patrimonial e fluxo de caixa de forma simples.",
+    steps: ["O que é DRE", "Balanço patrimonial", "Fluxo de caixa", "Indicadores chave"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 6, title: "Impostos por estado brasileiro", duration: "12 min",
-    category: "Notas Fiscais", thumbnail: "🏛️",
+    category: "Notas Fiscais", thumbnail: "🏛️", difficulty: "Avançado",
     description: "Como o Contuit calcula impostos automaticamente baseado no estado do cliente.",
+    steps: ["ICMS por estado", "ISS municipal", "Exceções fiscais", "Conferir cálculos"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 7, title: "Analisando despesas com AI", duration: "6 min",
-    category: "AI Assistant", thumbnail: "💡",
+    category: "AI Assistant", thumbnail: "💡", difficulty: "Intermediário",
     description: "Use a inteligência artificial para identificar gastos desnecessários.",
+    steps: ["Dashboard de despesas", "Perguntar ao AI", "Plano de ação"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 8, title: "Previsão de fluxo de caixa", duration: "8 min",
-    category: "Finanças", thumbnail: "🔮",
+    category: "Finanças", thumbnail: "🔮", difficulty: "Avançado",
     description: "Como usar as projeções de AI para planejar o futuro financeiro da sua empresa.",
+    steps: ["Acessar previsões", "Cenários otimista/pessimista", "Ações recomendadas"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: 9, title: "Configurando cobrança recorrente", duration: "5 min",
-    category: "Notas Fiscais", thumbnail: "🔄",
+    category: "Notas Fiscais", thumbnail: "🔄", difficulty: "Intermediário",
     description: "Automatize faturas recorrentes para clientes com contratos mensais.",
+    steps: ["Selecionar cliente", "Definir recorrência", "Ativar automação"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
 ];
 
+const difficultyColor: Record<string, string> = {
+  Iniciante: "bg-primary/10 text-primary",
+  Intermediário: "bg-yellow-500/10 text-yellow-600",
+  Avançado: "bg-destructive/10 text-destructive",
+};
+
 export default function EducationPage() {
   const [activeCategory, setActiveCategory] = useState("Todos");
-  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const completedCount = 3; // mock completed tutorials
+  const totalCount = tutorials.length;
 
   const filtered = activeCategory === "Todos"
     ? tutorials
@@ -62,12 +89,26 @@ export default function EducationPage() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" /> Central de Aprendizado
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Tutoriais e guias para aproveitar ao máximo o Contuit
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-primary" /> Central de Aprendizado
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Tutoriais e guias para aproveitar ao máximo o Contuit
+          </p>
+        </div>
+      </div>
+
+      {/* Progress Banner */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium text-foreground">Seu progresso</p>
+          <span className="text-xs text-muted-foreground">{completedCount}/{totalCount} concluídos</span>
+        </div>
+        <Progress value={(completedCount / totalCount) * 100} className="h-2" />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Complete todos os tutoriais para dominar a plataforma 🎯
         </p>
       </div>
 
@@ -90,47 +131,75 @@ export default function EducationPage() {
 
       {/* Tutorial Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((tutorial, i) => (
-          <motion.div
-            key={tutorial.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="group rounded-xl border border-border bg-card overflow-hidden transition-all hover:shadow-card hover:border-primary/20 cursor-pointer"
-            onClick={() => setPlayingId(playingId === tutorial.id ? null : tutorial.id)}
-          >
-            {/* Thumbnail */}
-            <div className="relative bg-gradient-dark flex items-center justify-center h-36">
-              <span className="text-5xl">{tutorial.thumbnail}</span>
-              <div className="absolute inset-0 flex items-center justify-center bg-foreground/0 group-hover:bg-foreground/10 transition-all">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/90 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Play className="h-5 w-5 ml-0.5" />
+        {filtered.map((tutorial, i) => {
+          const isExpanded = expandedId === tutorial.id;
+          const isCompleted = tutorial.id <= completedCount;
+
+          return (
+            <motion.div
+              key={tutorial.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="group rounded-xl border border-border bg-card overflow-hidden transition-all hover:shadow-card hover:border-primary/20 cursor-pointer"
+              onClick={() => setExpandedId(isExpanded ? null : tutorial.id)}
+            >
+              {/* Thumbnail */}
+              <div className="relative bg-gradient-dark flex items-center justify-center h-36">
+                <span className="text-5xl">{tutorial.thumbnail}</span>
+                <div className="absolute inset-0 flex items-center justify-center bg-foreground/0 group-hover:bg-foreground/10 transition-all">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/90 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Play className="h-5 w-5 ml-0.5" />
+                  </div>
+                </div>
+                <div className="absolute top-2 left-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${difficultyColor[tutorial.difficulty]}`}>
+                    {tutorial.difficulty}
+                  </span>
+                </div>
+                {isCompleted && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/80 px-2 py-0.5 text-xs text-primary-foreground">
+                  <Clock className="h-3 w-3" /> {tutorial.duration}
                 </div>
               </div>
-              <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/80 px-2 py-0.5 text-xs text-primary-foreground">
-                <Clock className="h-3 w-3" /> {tutorial.duration}
+
+              <div className="p-4">
+                <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mb-2">
+                  {tutorial.category}
+                </span>
+                <h3 className="text-sm font-semibold text-foreground">{tutorial.title}</h3>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{tutorial.description}</p>
               </div>
-            </div>
 
-            <div className="p-4">
-              <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mb-2">
-                {tutorial.category}
-              </span>
-              <h3 className="text-sm font-semibold text-foreground">{tutorial.title}</h3>
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{tutorial.description}</p>
-            </div>
-
-            {/* Expanded player placeholder */}
-            {playingId === tutorial.id && (
-              <div className="border-t border-border bg-secondary p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Play className="h-4 w-4 text-primary" />
-                  <span>Vídeo será carregado aqui quando conectado ao backend</span>
+              {/* Expanded content */}
+              {isExpanded && (
+                <div className="border-t border-border p-4 space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground mb-2">Conteúdo:</p>
+                    <ul className="space-y-1.5">
+                      {tutorial.steps.map((step, si) => (
+                        <li key={si} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <ChevronRight className="h-3 w-3 text-primary" />
+                          {step}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-lg bg-secondary aspect-video flex items-center justify-center">
+                    <div className="text-center">
+                      <Play className="h-8 w-8 text-primary mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">Clique para assistir</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </motion.div>
-        ))}
+              )}
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
