@@ -1,7 +1,7 @@
 import {
   BarChart3, FileText, PieChart, Settings, Brain, CreditCard,
   TrendingUp, LogOut, ChevronLeft, ChevronRight, BookOpen,
-  MessageSquare, Users, ClipboardList,
+  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link } from "react-router-dom";
@@ -9,13 +9,16 @@ import { useState } from "react";
 
 const navItems = [
   { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
+  { icon: CreditCard, label: "Transações", to: "/dashboard/transactions" },
+  { icon: TrendingUp, label: "Previsão", to: "/dashboard/forecast" },
+  { icon: Wallet, label: "Fluxo de Caixa", to: "/dashboard/cash-flow" },
   { icon: FileText, label: "Notas Fiscais", to: "/dashboard/invoices" },
   { icon: Users, label: "Clientes", to: "/dashboard/clients" },
   { icon: PieChart, label: "Relatórios", to: "/dashboard/reports" },
   { icon: ClipboardList, label: "Relatório Mensal", to: "/dashboard/monthly-report" },
   { icon: Brain, label: "AI Advisor", to: "/dashboard/advisor" },
-  { icon: CreditCard, label: "Transações", to: "/dashboard/transactions" },
-  { icon: TrendingUp, label: "Previsão", to: "/dashboard/forecast" },
+  { icon: Building2, label: "Briefing", to: "/dashboard/briefing" },
+  { icon: Plug, label: "Integrações", to: "/dashboard/integrations" },
   { icon: BookOpen, label: "Aprender", to: "/dashboard/education" },
   { icon: MessageSquare, label: "Feedback", to: "/dashboard/feedback" },
   { icon: Settings, label: "Configurações", to: "/dashboard/settings" },
