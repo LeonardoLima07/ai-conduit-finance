@@ -26,6 +26,7 @@ import CompanyBriefingPage from "./pages/CompanyBriefingPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import EducationPage from "./pages/EducationPage";
 import FeedbackPage from "./pages/FeedbackPage";
+import ProfitPlannerPage from "./pages/ProfitPlannerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
