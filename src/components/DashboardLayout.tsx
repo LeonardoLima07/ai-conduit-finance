@@ -1,7 +1,7 @@
 import {
   BarChart3, FileText, PieChart, Settings, Brain, CreditCard,
   TrendingUp, LogOut, ChevronLeft, ChevronRight, BookOpen,
-  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2, Repeat,
+  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2, Repeat, Target,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link } from "react-router-dom";
