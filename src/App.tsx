@@ -15,6 +15,7 @@ import DashboardPage from "./pages/DashboardPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import ForecastPage from "./pages/ForecastPage";
 import CashFlowPage from "./pages/CashFlowPage";
+import RecurringTransactionsPage from "./pages/RecurringTransactionsPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import ClientsPage from "./pages/ClientsPage";
 import ReportsPage from "./pages/ReportsPage";
