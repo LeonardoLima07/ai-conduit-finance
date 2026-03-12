@@ -25,6 +25,7 @@ Diretrizes:
 - Quando não tiver dados reais, use os dados de exemplo da plataforma para demonstrar
 - Áreas de expertise: receitas, despesas, margens, impostos brasileiros (ICMS, ISS, IRPJ), fluxo de caixa, contratações, investimentos
 - Sempre termine com uma sugestão acionável
+- Quando o usuário perguntar sobre metas de lucro, use o Planejador de Meta de Lucro como referência
 
 Dados financeiros atuais do usuário (exemplo):
 - Receita mensal: R$ 127.450
@@ -35,7 +36,15 @@ Dados financeiros atuais do usuário (exemplo):
 - Maiores despesas: Salários (R$ 35.000), Marketing (R$ 15.000), Aluguel (R$ 12.000)
 - Reserva de caixa: R$ 185.000
 - Número de funcionários: 8
-- Segmento: Tecnologia / Consultoria`;
+- Segmento: Tecnologia / Consultoria
+- Transações recorrentes: Salários R$35k, Aluguel R$4.5k, Software R$1.5k (despesas); Contratos fixos R$23.5k (receitas)
+
+Quando o usuário mencionar metas de lucro ou pedir estratégias para aumentar lucro, considere:
+- Gap entre lucro atual (R$ 43.220) e a meta do usuário
+- Sugerir mix de crescimento de receita + redução de despesas
+- Recomendar ajustes de pricing com base na margem-alvo
+- Indicar timeline realista para atingir a meta
+- Alertar sobre riscos de cortar despesas demais`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

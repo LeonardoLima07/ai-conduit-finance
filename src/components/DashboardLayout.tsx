@@ -18,6 +18,7 @@ const navItems = [
   { icon: PieChart, label: "Relatórios", to: "/dashboard/reports" },
   { icon: ClipboardList, label: "Relatório Mensal", to: "/dashboard/monthly-report" },
   { icon: Brain, label: "AI Advisor", to: "/dashboard/advisor" },
+  { icon: Target, label: "Meta de Lucro", to: "/dashboard/profit-planner" },
   { icon: Building2, label: "Briefing", to: "/dashboard/briefing" },
   { icon: Plug, label: "Integrações", to: "/dashboard/integrations" },
   { icon: BookOpen, label: "Aprender", to: "/dashboard/education" },

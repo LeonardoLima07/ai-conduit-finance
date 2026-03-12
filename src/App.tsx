@@ -68,6 +68,7 @@ const App = () => (
           <Route path="/dashboard/integrations" element={<DashboardLayout><IntegrationsPage /></DashboardLayout>} />
           <Route path="/dashboard/education" element={<DashboardLayout><EducationPage /></DashboardLayout>} />
           <Route path="/dashboard/feedback" element={<DashboardLayout><FeedbackPage /></DashboardLayout>} />
+          <Route path="/dashboard/profit-planner" element={<DashboardLayout><ProfitPlannerPage /></DashboardLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
