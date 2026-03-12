@@ -37,6 +37,8 @@ const insightStyles: Record<string, string> = {
 
 export default function CashFlowPage() {
   const currentBalance = 392220;
+  const recurringMonthlyIncome = 23500; // from recurring transactions
+  const recurringMonthlyExpense = 40539; // from recurring transactions
   const expectedIncome = 127450;
   const expectedExpenses = 84230;
   const projectedBalance = currentBalance + expectedIncome - expectedExpenses;
@@ -44,8 +46,8 @@ export default function CashFlowPage() {
 
   const [insights, setInsights] = useState<AIInsight[]>([
     { type: "success", title: "Reserva saudável", text: "Você tem 4.7 meses de despesas em reserva. Acima do recomendado (3 meses)." },
-    { type: "warning", title: "Concentração de receita", text: "65% da receita vem de 2 clientes. Diversifique para reduzir risco." },
-    { type: "info", title: "Otimização possível", text: "Renegociar contratos de software pode economizar R$ 800/mês." },
+    { type: "warning", title: "Compromissos recorrentes", text: `R$ ${recurringMonthlyExpense.toLocaleString("pt-BR")}/mês em despesas fixas. Representa ${Math.round(recurringMonthlyExpense / expectedExpenses * 100)}% das despesas totais.` },
+    { type: "info", title: "Receita recorrente", text: `R$ ${recurringMonthlyIncome.toLocaleString("pt-BR")}/mês em contratos fixos garante ${Math.round(recurringMonthlyIncome / expectedIncome * 100)}% da receita.` },
   ]);
   const [loadingInsights, setLoadingInsights] = useState(false);
 

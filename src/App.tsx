@@ -15,6 +15,7 @@ import DashboardPage from "./pages/DashboardPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import ForecastPage from "./pages/ForecastPage";
 import CashFlowPage from "./pages/CashFlowPage";
+import RecurringTransactionsPage from "./pages/RecurringTransactionsPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import ClientsPage from "./pages/ClientsPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/dashboard/transactions" element={<DashboardLayout><TransactionsPage /></DashboardLayout>} />
           <Route path="/dashboard/forecast" element={<DashboardLayout><ForecastPage /></DashboardLayout>} />
           <Route path="/dashboard/cash-flow" element={<DashboardLayout><CashFlowPage /></DashboardLayout>} />
+          <Route path="/dashboard/recurring" element={<DashboardLayout><RecurringTransactionsPage /></DashboardLayout>} />
           <Route path="/dashboard/invoices" element={<DashboardLayout><InvoicesPage /></DashboardLayout>} />
           <Route path="/dashboard/clients" element={<DashboardLayout><ClientsPage /></DashboardLayout>} />
           <Route path="/dashboard/reports" element={<DashboardLayout><ReportsPage /></DashboardLayout>} />

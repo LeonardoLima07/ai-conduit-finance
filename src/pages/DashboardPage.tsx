@@ -1,4 +1,4 @@
-import { Brain, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2, RefreshCw, Shield, Zap, Target, Wallet, CreditCard, BarChart3 } from "lucide-react";
+import { Brain, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2, RefreshCw, Shield, Zap, Target, Wallet, CreditCard, BarChart3, Repeat, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useState, useEffect, useCallback } from "react";
@@ -31,6 +31,14 @@ const cashFlowPreview = [
   { day: "+14d", balance: 418000 },
   { day: "+21d", balance: 410000 },
   { day: "+30d", balance: 435000 },
+];
+
+const upcomingCommitments = [
+  { desc: "Salários da equipe", amount: "R$ 35.000", type: "expense", date: "01/04", freq: "Mensal" },
+  { desc: "Aluguel do escritório", amount: "R$ 4.500", type: "expense", date: "01/04", freq: "Mensal" },
+  { desc: "Contrato — Empresa ABC", amount: "R$ 15.000", type: "income", date: "10/04", freq: "Mensal" },
+  { desc: "Internet e Telefone", amount: "R$ 450", type: "expense", date: "28/03", freq: "Mensal" },
+  { desc: "Adobe Creative Cloud", amount: "R$ 289", type: "expense", date: "11/04", freq: "Mensal" },
 ];
 
 const kpis = [
@@ -185,7 +193,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-4">
         {/* Cash Flow Preview */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
@@ -217,6 +225,33 @@ export default function DashboardPage() {
               <Bar dataKey="value" fill="hsl(217, 91%, 60%)" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* Upcoming Financial Commitments */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Repeat className="h-5 w-5 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Compromissos Financeiros</h3>
+            </div>
+            <Link to="/dashboard/recurring"><Button variant="ghost" size="sm" className="text-xs">Gerenciar →</Button></Link>
+          </div>
+          <div className="space-y-3">
+            {upcomingCommitments.map((c, i) => (
+              <div key={i} className="flex items-center justify-between py-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${c.type === "income" ? "bg-primary/10" : "bg-secondary"}`}>
+                    {c.type === "income" ? <ArrowUpRight className="h-3.5 w-3.5 text-primary" /> : <ArrowDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{c.desc}</p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="h-2.5 w-2.5" />{c.date} · {c.freq}</p>
+                  </div>
+                </div>
+                <p className={`text-xs font-semibold ${c.type === "income" ? "text-primary" : "text-foreground"}`}>{c.type === "expense" ? "-" : "+"}{c.amount}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Recent Transactions */}

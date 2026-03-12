@@ -1,7 +1,7 @@
 import {
   BarChart3, FileText, PieChart, Settings, Brain, CreditCard,
   TrendingUp, LogOut, ChevronLeft, ChevronRight, BookOpen,
-  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2,
+  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2, Repeat,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link } from "react-router-dom";
@@ -12,6 +12,7 @@ const navItems = [
   { icon: CreditCard, label: "Transações", to: "/dashboard/transactions" },
   { icon: TrendingUp, label: "Previsão", to: "/dashboard/forecast" },
   { icon: Wallet, label: "Fluxo de Caixa", to: "/dashboard/cash-flow" },
+  { icon: Repeat, label: "Recorrências", to: "/dashboard/recurring" },
   { icon: FileText, label: "Notas Fiscais", to: "/dashboard/invoices" },
   { icon: Users, label: "Clientes", to: "/dashboard/clients" },
   { icon: PieChart, label: "Relatórios", to: "/dashboard/reports" },

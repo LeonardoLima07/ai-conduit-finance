@@ -1,0 +1,1 @@
+ALTER TABLE public.recurring_transactions ADD COLUMN next_execution_date date NOT NULL DEFAULT CURRENT_DATE;
