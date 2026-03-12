@@ -227,6 +227,33 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
 
+        {/* Upcoming Financial Commitments */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Repeat className="h-5 w-5 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Compromissos Financeiros</h3>
+            </div>
+            <Link to="/dashboard/recurring"><Button variant="ghost" size="sm" className="text-xs">Gerenciar →</Button></Link>
+          </div>
+          <div className="space-y-3">
+            {upcomingCommitments.map((c, i) => (
+              <div key={i} className="flex items-center justify-between py-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${c.type === "income" ? "bg-primary/10" : "bg-secondary"}`}>
+                    {c.type === "income" ? <ArrowUpRight className="h-3.5 w-3.5 text-primary" /> : <ArrowDownRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{c.desc}</p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="h-2.5 w-2.5" />{c.date} · {c.freq}</p>
+                  </div>
+                </div>
+                <p className={`text-xs font-semibold ${c.type === "income" ? "text-primary" : "text-foreground"}`}>{c.type === "expense" ? "-" : "+"}{c.amount}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Recent Transactions */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
