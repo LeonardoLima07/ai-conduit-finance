@@ -321,6 +321,7 @@ export type Database = {
           frequency: string
           id: string
           is_active: boolean
+          next_execution_date: string
           type: string
         }
         Insert: {
@@ -333,6 +334,7 @@ export type Database = {
           frequency?: string
           id?: string
           is_active?: boolean
+          next_execution_date?: string
           type: string
         }
         Update: {
@@ -345,6 +347,7 @@ export type Database = {
           frequency?: string
           id?: string
           is_active?: boolean
+          next_execution_date?: string
           type?: string
         }
         Relationships: [
