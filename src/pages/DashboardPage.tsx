@@ -33,6 +33,14 @@ const cashFlowPreview = [
   { day: "+30d", balance: 435000 },
 ];
 
+const upcomingCommitments = [
+  { desc: "Salários da equipe", amount: "R$ 35.000", type: "expense", date: "01/04", freq: "Mensal" },
+  { desc: "Aluguel do escritório", amount: "R$ 4.500", type: "expense", date: "01/04", freq: "Mensal" },
+  { desc: "Contrato — Empresa ABC", amount: "R$ 15.000", type: "income", date: "10/04", freq: "Mensal" },
+  { desc: "Internet e Telefone", amount: "R$ 450", type: "expense", date: "28/03", freq: "Mensal" },
+  { desc: "Adobe Creative Cloud", amount: "R$ 289", type: "expense", date: "11/04", freq: "Mensal" },
+];
+
 const kpis = [
   { label: "Receita", value: "R$ 127.450", change: "+12,5%", positive: true, icon: TrendingUp, color: "text-primary" },
   { label: "Despesas", value: "R$ 84.230", change: "-3,2%", positive: true, icon: ArrowDownRight, color: "text-foreground" },
