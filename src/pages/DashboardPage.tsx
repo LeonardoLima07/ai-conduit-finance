@@ -193,7 +193,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-4">
         {/* Cash Flow Preview */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">

@@ -18,11 +18,35 @@ interface ForecastData {
   alerts: { type: "warning" | "danger" | "info"; title: string; text: string }[];
 }
 
+// Recurring commitments used for forecast modeling
+const recurringItems = [
+  { amount: 35000, type: "expense", frequency: "monthly" },
+  { amount: 4500, type: "expense", frequency: "monthly" },
+  { amount: 289, type: "expense", frequency: "monthly" },
+  { amount: 450, type: "expense", frequency: "monthly" },
+  { amount: 1200, type: "expense", frequency: "yearly" },
+  { amount: 15000, type: "income", frequency: "monthly" },
+  { amount: 8500, type: "income", frequency: "monthly" },
+];
+
+const recurringDailyIncome = recurringItems.filter(r => r.type === "income").reduce((s, r) => {
+  if (r.frequency === "weekly") return s + (r.amount * 4) / 30;
+  if (r.frequency === "yearly") return s + r.amount / 365;
+  return s + r.amount / 30;
+}, 0);
+
+const recurringDailyExpense = recurringItems.filter(r => r.type === "expense").reduce((s, r) => {
+  if (r.frequency === "weekly") return s + (r.amount * 4) / 30;
+  if (r.frequency === "yearly") return s + r.amount / 365;
+  return s + r.amount / 30;
+}, 0);
+
 const generateProjection = (days: number): ForecastData => {
   const baseIncome = 127450;
   const baseExpenses = 84230;
-  const dailyIncome = baseIncome / 30;
-  const dailyExpenses = baseExpenses / 30;
+  // Blend historical trend with recurring commitments
+  const dailyIncome = (baseIncome / 30 + recurringDailyIncome) / 2 + recurringDailyIncome / 2;
+  const dailyExpenses = (baseExpenses / 30 + recurringDailyExpense) / 2 + recurringDailyExpense / 2;
   let balance = 185000;
   const data: ForecastData["cashFlowData"] = [];
 
@@ -52,7 +76,7 @@ const generateProjection = (days: number): ForecastData => {
     cashFlowData: data,
     alerts: [
       { type: "warning", title: "Sazonalidade detectada", text: `Baseado no histórico, a receita tende a cair 12% nos próximos ${days} dias. Prepare reservas.` },
-      { type: "info", title: "Oportunidade de investimento", text: "Seu saldo projetado permite investir até R$ 25.000 em expansão sem comprometer o fluxo de caixa." },
+      { type: "info", title: "Recorrências mapeadas", text: `${recurringItems.length} transações recorrentes foram incluídas na projeção (R$ ${Math.round(recurringDailyIncome * 30).toLocaleString("pt-BR")} receita / R$ ${Math.round(recurringDailyExpense * 30).toLocaleString("pt-BR")} despesa mensal).` },
       ...(days >= 60 ? [{ type: "danger" as const, title: "Alerta de caixa", text: `Com a tendência atual, sua empresa pode enfrentar aperto de caixa em ${Math.round(45 + Math.random() * 20)} dias.` }] : []),
     ],
   };
