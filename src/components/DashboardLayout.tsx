@@ -1,7 +1,7 @@
 import {
   BarChart3, FileText, PieChart, Settings, Brain, CreditCard,
   TrendingUp, LogOut, ChevronLeft, ChevronRight, BookOpen,
-  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2, Repeat,
+  MessageSquare, Users, ClipboardList, Wallet, Plug, Building2, Repeat, Target,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link } from "react-router-dom";
@@ -18,6 +18,7 @@ const navItems = [
   { icon: PieChart, label: "Relatórios", to: "/dashboard/reports" },
   { icon: ClipboardList, label: "Relatório Mensal", to: "/dashboard/monthly-report" },
   { icon: Brain, label: "AI Advisor", to: "/dashboard/advisor" },
+  { icon: Target, label: "Meta de Lucro", to: "/dashboard/profit-planner" },
   { icon: Building2, label: "Briefing", to: "/dashboard/briefing" },
   { icon: Plug, label: "Integrações", to: "/dashboard/integrations" },
   { icon: BookOpen, label: "Aprender", to: "/dashboard/education" },

@@ -26,6 +26,7 @@ import CompanyBriefingPage from "./pages/CompanyBriefingPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import EducationPage from "./pages/EducationPage";
 import FeedbackPage from "./pages/FeedbackPage";
+import ProfitPlannerPage from "./pages/ProfitPlannerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => (
           <Route path="/dashboard/integrations" element={<DashboardLayout><IntegrationsPage /></DashboardLayout>} />
           <Route path="/dashboard/education" element={<DashboardLayout><EducationPage /></DashboardLayout>} />
           <Route path="/dashboard/feedback" element={<DashboardLayout><FeedbackPage /></DashboardLayout>} />
+          <Route path="/dashboard/profit-planner" element={<DashboardLayout><ProfitPlannerPage /></DashboardLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
