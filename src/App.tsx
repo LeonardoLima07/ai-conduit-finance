@@ -56,6 +56,7 @@ const App = () => (
           <Route path="/dashboard/transactions" element={<DashboardLayout><TransactionsPage /></DashboardLayout>} />
           <Route path="/dashboard/forecast" element={<DashboardLayout><ForecastPage /></DashboardLayout>} />
           <Route path="/dashboard/cash-flow" element={<DashboardLayout><CashFlowPage /></DashboardLayout>} />
+          <Route path="/dashboard/recurring" element={<DashboardLayout><RecurringTransactionsPage /></DashboardLayout>} />
           <Route path="/dashboard/invoices" element={<DashboardLayout><InvoicesPage /></DashboardLayout>} />
           <Route path="/dashboard/clients" element={<DashboardLayout><ClientsPage /></DashboardLayout>} />
           <Route path="/dashboard/reports" element={<DashboardLayout><ReportsPage /></DashboardLayout>} />
