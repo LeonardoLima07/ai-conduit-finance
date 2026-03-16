@@ -1,4 +1,5 @@
 import { Brain, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2, RefreshCw, Shield, Zap, Target, Wallet, CreditCard, BarChart3, Repeat, Calendar } from "lucide-react";
+import ExpenseOptimizationCard from "@/components/dashboard/ExpenseOptimizationCard";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useState, useEffect, useCallback } from "react";
@@ -192,6 +193,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Expense Optimization Insights */}
+      <ExpenseOptimizationCard />
 
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Cash Flow Preview */}
