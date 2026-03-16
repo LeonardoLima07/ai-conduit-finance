@@ -1,4 +1,4 @@
-import { Brain, Send, Loader2 } from "lucide-react";
+import { Brain, Send, Loader2, Lightbulb, TrendingUp, ShieldAlert, DollarSign, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
@@ -11,20 +11,30 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const welcomeMessage: Msg = {
   role: "assistant",
-  content: "Olá! 👋 Sou seu **Consultor de Negócios AI** da Contuit.\n\nAnalisei seus dados financeiros e estou pronto para ajudar. Pergunte-me qualquer coisa sobre:\n\n• 📊 Receitas e despesas\n• 💰 Margem de lucro e otimizações\n• 👥 Contratações e custos\n• 📈 Estratégias de crescimento\n\nO que gostaria de saber?",
+  content: "Olá! 👋 Sou o **Business Copilot** da Contuit — seu parceiro estratégico financeiro.\n\nAnalisei seus dados e identifiquei alguns pontos importantes:\n\n• 📈 Sua receita cresceu **8.5%** nos últimos 3 meses\n• ⚠️ Suas despesas cresceram **12.3%** — acima da receita\n• 💰 Margem de lucro: **33.9%** (saudável para seu setor)\n• 🎯 Faltam **R$ 16.780** para sua meta de lucro\n\nComo posso ajudar hoje?",
 };
 
 const suggestedQuestions = [
-  "Posso contratar mais um funcionário?",
-  "Como reduzir minhas despesas?",
-  "Minha empresa está financeiramente saudável?",
-  "Devo aumentar meus preços?",
+  { icon: DollarSign, text: "Posso contratar mais um funcionário?" },
+  { icon: TrendingUp, text: "Como aumentar minha margem de lucro?" },
+  { icon: ShieldAlert, text: "Quais despesas estão prejudicando meu negócio?" },
+  { icon: Target, text: "Qual receita preciso para atingir minha meta?" },
+];
+
+const strategicQuestions = [
+  "Que ação você pode tomar este mês para aumentar sua receita em 10%?",
+  "Qual despesa você poderia reduzir sem afetar suas operações?",
+  "Qual meta financeira você quer atingir nos próximos 90 dias?",
+  "Se pudesse investir R$ 10.000 no negócio agora, onde teria mais retorno?",
+  "Qual processo interno consome mais tempo e poderia ser automatizado?",
+  "Você está cobrando o preço justo pelo valor que entrega?",
 ];
 
 export default function AdvisorPage() {
   const [messages, setMessages] = useState<Msg[]>([welcomeMessage]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showStrategic, setShowStrategic] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +43,7 @@ export default function AdvisorPage() {
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
+    setShowStrategic(false);
     const userMsg: Msg = { role: "user", content: text };
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
@@ -51,16 +62,8 @@ export default function AdvisorPage() {
         body: JSON.stringify({ messages: allMessages.map(m => ({ role: m.role, content: m.content })) }),
       });
 
-      if (resp.status === 429) {
-        toast.error("Limite de requisições excedido. Aguarde um momento.");
-        setIsLoading(false);
-        return;
-      }
-      if (resp.status === 402) {
-        toast.error("Créditos insuficientes. Adicione créditos ao seu workspace.");
-        setIsLoading(false);
-        return;
-      }
+      if (resp.status === 429) { toast.error("Limite de requisições excedido. Aguarde um momento."); setIsLoading(false); return; }
+      if (resp.status === 402) { toast.error("Créditos insuficientes. Adicione créditos ao seu workspace."); setIsLoading(false); return; }
       if (!resp.ok || !resp.body) throw new Error("Failed to start stream");
 
       const reader = resp.body.getReader();
@@ -83,7 +86,6 @@ export default function AdvisorPage() {
         const { done, value } = await reader.read();
         if (done) break;
         textBuffer += decoder.decode(value, { stream: true });
-
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
           let line = textBuffer.slice(0, newlineIndex);
@@ -104,7 +106,6 @@ export default function AdvisorPage() {
         }
       }
 
-      // Flush remaining
       if (textBuffer.trim()) {
         for (let raw of textBuffer.split("\n")) {
           if (!raw) continue;
@@ -121,7 +122,7 @@ export default function AdvisorPage() {
       }
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao conectar com o assistente AI.");
+      toast.error("Erro ao conectar com o Business Copilot.");
     } finally {
       setIsLoading(false);
     }
@@ -129,28 +130,26 @@ export default function AdvisorPage() {
 
   return (
     <div className="flex h-[calc(100vh)] flex-col">
+      {/* Header */}
       <div className="border-b border-border px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero">
             <Brain className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">AI Business Advisor</h1>
-            <p className="text-xs text-muted-foreground">Seu CFO virtual powered by AI</p>
+            <h1 className="text-lg font-bold text-foreground">Business Copilot</h1>
+            <p className="text-xs text-muted-foreground">CFO virtual • Consultor estratégico • Coach financeiro</p>
           </div>
         </div>
       </div>
 
+      {/* Chat area */}
       <div className="flex-1 overflow-auto p-6 space-y-4" ref={scrollRef}>
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground"
-              }`}
-            >
+            <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+              msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+            }`}>
               {msg.role === "assistant" ? (
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -161,6 +160,7 @@ export default function AdvisorPage() {
             </div>
           </div>
         ))}
+
         {isLoading && !messages.find((_, i) => i === messages.length - 1 && messages[i]?.role === "assistant") && (
           <div className="flex justify-start">
             <div className="rounded-2xl bg-secondary px-4 py-3">
@@ -169,26 +169,55 @@ export default function AdvisorPage() {
           </div>
         )}
 
-        {/* Suggested questions for first interaction */}
+        {/* Suggested questions on first interaction */}
         {messages.length === 1 && (
-          <div className="flex flex-wrap gap-2 pt-2">
-            {suggestedQuestions.map((q) => (
-              <button
-                key={q}
-                onClick={() => sendMessage(q)}
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
-              >
-                {q}
-              </button>
-            ))}
+          <div className="space-y-4 pt-2">
+            <div className="flex flex-wrap gap-2">
+              {suggestedQuestions.map((q) => (
+                <button
+                  key={q.text}
+                  onClick={() => sendMessage(q.text)}
+                  className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                >
+                  <q.icon className="h-3 w-3" />
+                  {q.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Strategic Questions Section */}
+        {showStrategic && messages.length <= 2 && (
+          <div className="mt-6 rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Perguntas Estratégicas</h3>
+              <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Coach Mode</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Reflita sobre essas perguntas para melhorar suas decisões financeiras:
+            </p>
+            <div className="grid gap-2">
+              {strategicQuestions.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => sendMessage(q)}
+                  className="text-left rounded-lg border border-border/50 bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                >
+                  💡 {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
+      {/* Input */}
       <div className="border-t border-border p-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Pergunte sobre seu negócio..."
+            placeholder="Pergunte sobre seu negócio, finanças ou estratégia..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
