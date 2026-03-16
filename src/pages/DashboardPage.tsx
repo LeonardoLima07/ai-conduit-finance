@@ -194,6 +194,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Expense Optimization Insights */}
+      <ExpenseOptimizationCard />
+
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Cash Flow Preview */}
         <div className="rounded-xl border border-border bg-card p-5">
