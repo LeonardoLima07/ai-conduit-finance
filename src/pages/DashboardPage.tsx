@@ -7,54 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-
-const revenueData = [
-  { month: "Jul", revenue: 85000, expenses: 62000 },
-  { month: "Aug", revenue: 92000, expenses: 65000 },
-  { month: "Sep", revenue: 88000, expenses: 58000 },
-  { month: "Oct", revenue: 105000, expenses: 72000 },
-  { month: "Nov", revenue: 115000, expenses: 68000 },
-  { month: "Dec", revenue: 127450, expenses: 84230 },
-];
-
-const categoryData = [
-  { name: "Salários", value: 35000 },
-  { name: "Aluguel", value: 12000 },
-  { name: "Marketing", value: 15000 },
-  { name: "Software", value: 8500 },
-  { name: "Materiais", value: 5200 },
-  { name: "Outros", value: 8530 },
-];
-
-const cashFlowPreview = [
-  { day: "Hoje", balance: 392220 },
-  { day: "+7d", balance: 405000 },
-  { day: "+14d", balance: 418000 },
-  { day: "+21d", balance: 410000 },
-  { day: "+30d", balance: 435000 },
-];
-
-const upcomingCommitments = [
-  { desc: "Salários da equipe", amount: "R$ 35.000", type: "expense", date: "01/04", freq: "Mensal" },
-  { desc: "Aluguel do escritório", amount: "R$ 4.500", type: "expense", date: "01/04", freq: "Mensal" },
-  { desc: "Contrato — Empresa ABC", amount: "R$ 15.000", type: "income", date: "10/04", freq: "Mensal" },
-  { desc: "Internet e Telefone", amount: "R$ 450", type: "expense", date: "28/03", freq: "Mensal" },
-  { desc: "Adobe Creative Cloud", amount: "R$ 289", type: "expense", date: "11/04", freq: "Mensal" },
-];
-
-const kpis = [
-  { label: "Receita", value: "R$ 127.450", change: "+12,5%", positive: true, icon: TrendingUp, color: "text-primary" },
-  { label: "Despesas", value: "R$ 84.230", change: "-3,2%", positive: true, icon: ArrowDownRight, color: "text-foreground" },
-  { label: "Lucro Líquido", value: "R$ 43.220", change: "+18,7%", positive: true, icon: ArrowUpRight, color: "text-primary" },
-  { label: "Fluxo de Caixa", value: "R$ 392.220", change: "+8,4%", positive: true, icon: Wallet, color: "text-primary" },
-];
-
-const recentTransactions = [
-  { desc: "Pagamento — Empresa ABC", amount: "+R$ 15.000", type: "income", date: "Hoje" },
-  { desc: "Adobe Creative Cloud", amount: "-R$ 289", type: "expense", date: "Hoje" },
-  { desc: "Google Ads", amount: "-R$ 3.200", type: "expense", date: "Ontem" },
-  { desc: "Pagamento — Loja XYZ", amount: "+R$ 8.500", type: "income", date: "Ontem" },
-];
+import { useFinancialData } from "@/hooks/useFinancialData";
 
 type InsightType = "success" | "warning" | "danger" | "info";
 interface AIInsight { type: InsightType; title: string; text: string; }
@@ -69,47 +22,106 @@ const insightIcons: Record<InsightType, typeof TrendingUp> = {
   success: TrendingUp, warning: AlertTriangle, danger: Shield, info: Zap,
 };
 
-const fallbackInsights: AIInsight[] = [
-  { type: "success", title: "Margem saudável", text: "Margem de 33,9% acima da média do setor (28%). Continue monitorando." },
-  { type: "warning", title: "Marketing com ROI baixo", text: "Gastos +23% mas conversões +8%. Otimize campanhas." },
-  { type: "info", title: "Oportunidade de pricing", text: "Concorrentes cobram 12% mais. Ajuste 7% sem impacto na conversão." },
-];
-
 export default function DashboardPage() {
-  const [healthScore, setHealthScore] = useState(92);
-  const [healthLabel, setHealthLabel] = useState("Excelente");
-  const [insights, setInsights] = useState<AIInsight[]>(fallbackInsights);
+  const { data, isLoading: dataLoading } = useFinancialData();
+  const [healthScore, setHealthScore] = useState(0);
+  const [healthLabel, setHealthLabel] = useState("Calculando...");
+  const [insights, setInsights] = useState<AIInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
+  // Compute health score from real data
+  useEffect(() => {
+    if (!data) return;
+    let score = 50;
+    if (data.profitMargin > 30) score += 20;
+    else if (data.profitMargin > 15) score += 10;
+    if (data.totalRevenue > data.totalExpenses * 1.3) score += 15;
+    if (data.recurringIncome > data.totalRevenue * 0.3) score += 10;
+    if (data.expensesByCategory.length > 0) score += 5;
+    score = Math.min(100, Math.max(0, score));
+    setHealthScore(score);
+    setHealthLabel(score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Crítico");
+  }, [data]);
+
   const fetchInsights = useCallback(async () => {
+    if (!data) return;
     setLoadingInsights(true);
     try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-insights`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ financialData: { revenue: 127450, expenses: 84230, profit: 43220, profitMargin: 33.9, categories: categoryData, revenueHistory: revenueData, employees: 8, segment: "Tecnologia / Consultoria" } }),
+        body: JSON.stringify({
+          financialData: {
+            revenue: data.totalRevenue,
+            expenses: data.totalExpenses,
+            profit: data.profit,
+            profitMargin: data.profitMargin,
+            categories: data.expensesByCategory,
+            revenueHistory: data.revenueByMonth,
+            employees: parseInt(data.employeeCount) || 0,
+            segment: data.industry,
+          },
+        }),
       });
       if (resp.status === 429) { toast.error("Limite excedido."); return; }
       if (resp.status === 402) { toast.error("Créditos insuficientes."); return; }
       if (resp.ok) {
-        const data = await resp.json();
-        if (data.insights) setInsights(data.insights);
-        if (data.healthScore) setHealthScore(data.healthScore);
-        if (data.healthLabel) setHealthLabel(data.healthLabel);
+        const d = await resp.json();
+        if (d.insights) setInsights(d.insights);
+        if (d.healthScore) setHealthScore(d.healthScore);
+        if (d.healthLabel) setHealthLabel(d.healthLabel);
       }
     } catch {} finally { setLoadingInsights(false); }
-  }, []);
+  }, [data]);
 
-  useEffect(() => { fetchInsights(); }, [fetchInsights]);
+  useEffect(() => { if (data) fetchInsights(); }, [data, fetchInsights]);
 
+  if (dataLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!data || !data.companyId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <h2 className="text-xl font-bold text-foreground mb-2">Nenhuma empresa cadastrada</h2>
+        <p className="text-sm text-muted-foreground mb-4">Complete o briefing da empresa para começar.</p>
+        <Link to="/dashboard/briefing"><Button variant="hero">Cadastrar Empresa</Button></Link>
+      </div>
+    );
+  }
+
+  const hasData = data.transactions.length > 0;
   const scoreColor = healthScore >= 80 ? "text-primary" : healthScore >= 60 ? "text-yellow-500" : "text-destructive";
+
+  const kpis = [
+    { label: "Receita", value: `R$ ${data.totalRevenue.toLocaleString("pt-BR")}`, change: hasData ? "" : "Sem dados", positive: true, icon: TrendingUp, color: "text-primary" },
+    { label: "Despesas", value: `R$ ${data.totalExpenses.toLocaleString("pt-BR")}`, change: "", positive: true, icon: ArrowDownRight, color: "text-foreground" },
+    { label: "Lucro Líquido", value: `R$ ${data.profit.toLocaleString("pt-BR")}`, change: data.profitMargin > 0 ? `${data.profitMargin.toFixed(1)}%` : "", positive: data.profit >= 0, icon: ArrowUpRight, color: data.profit >= 0 ? "text-primary" : "text-destructive" },
+    { label: "Rec. Recorrente", value: `R$ ${data.recurringIncome.toLocaleString("pt-BR")}`, change: "", positive: true, icon: Wallet, color: "text-primary" },
+  ];
+
+  // Upcoming commitments from recurring transactions
+  const upcomingCommitments = data.recurringTransactions
+    .filter((r) => r.isActive)
+    .slice(0, 5)
+    .map((r) => ({
+      desc: r.description,
+      amount: `R$ ${r.amount.toLocaleString("pt-BR")}`,
+      type: r.type === "income" ? "income" : "expense",
+      date: new Date(r.nextExecutionDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      freq: r.frequency === "monthly" ? "Mensal" : r.frequency === "weekly" ? "Semanal" : "Anual",
+    }));
 
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Centro de controle financeiro — Março 2026</p>
+          <p className="text-sm text-muted-foreground">Centro de controle financeiro — {data.companyName}</p>
         </div>
         <div className="flex gap-2">
           <Link to="/dashboard/transactions"><Button variant="outline" size="sm"><CreditCard className="mr-1.5 h-3.5 w-3.5" /> Transações</Button></Link>
@@ -126,7 +138,7 @@ export default function DashboardPage() {
               <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
             </div>
             <p className="mt-2 text-2xl font-bold text-foreground">{kpi.value}</p>
-            <p className="mt-1 text-xs font-medium text-primary">{kpi.change}</p>
+            {kpi.change && <p className="mt-1 text-xs font-medium text-primary">{kpi.change}</p>}
           </motion.div>
         ))}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-xl border border-border bg-card p-5">
@@ -147,21 +159,27 @@ export default function DashboardPage() {
         {/* Revenue Chart */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Receita vs Despesas</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={revenueData}>
-              <defs>
-                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
-              <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
-              <Area type="monotone" dataKey="revenue" stroke="hsl(217, 91%, 60%)" fill="url(#revGrad)" strokeWidth={2} />
-              <Area type="monotone" dataKey="expenses" stroke="hsl(220, 9%, 46%)" fill="transparent" strokeWidth={2} strokeDasharray="4 4" />
-            </AreaChart>
-          </ResponsiveContainer>
+          {data.revenueByMonth.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={data.revenueByMonth}>
+                <defs>
+                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+                <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
+                <Area type="monotone" dataKey="revenue" stroke="hsl(217, 91%, 60%)" fill="url(#revGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expenses" stroke="hsl(220, 9%, 46%)" fill="transparent" strokeWidth={2} strokeDasharray="4 4" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-sm text-muted-foreground">
+              Adicione transações para visualizar o gráfico.
+            </div>
+          )}
         </div>
 
         {/* AI Insights */}
@@ -173,62 +191,63 @@ export default function DashboardPage() {
             </Button>
           </div>
           <div className="space-y-3">
-            {loadingInsights && insights === fallbackInsights ? (
+            {loadingInsights && insights.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mb-2" /><p className="text-xs">Analisando...</p></div>
-            ) : insights.map((insight, i) => {
-              const Icon = insightIcons[insight.type] || Zap;
-              return (
-                <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-                  className={`rounded-lg border p-3 ${insightStyles[insight.type] || insightStyles.info}`}>
-                  <div className="flex items-start gap-2">
-                    <Icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">{insight.title}</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{insight.text}</p>
+            ) : insights.length > 0 ? (
+              insights.map((insight, i) => {
+                const Icon = insightIcons[insight.type] || Zap;
+                return (
+                  <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
+                    className={`rounded-lg border p-3 ${insightStyles[insight.type] || insightStyles.info}`}>
+                    <div className="flex items-start gap-2">
+                      <Icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">{insight.title}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{insight.text}</p>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+                  </motion.div>
+                );
+              })
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-4">Adicione transações para gerar insights.</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Expense Optimization Insights */}
-      <ExpenseOptimizationCard />
+      <ExpenseOptimizationCard expenseData={data.expensesByCategory.length > 0 ? {
+        categories: data.expensesByCategory,
+        total: data.totalExpenses,
+      } : undefined} />
 
       <div className="grid gap-6 lg:grid-cols-4">
-        {/* Cash Flow Preview */}
+        {/* Expenses by Category */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Despesas por Categoria</h3>
+          {data.expensesByCategory.length > 0 ? (
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={data.expensesByCategory.slice(0, 6)} layout="vertical">
+                <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={70} />
+                <Bar dataKey="value" fill="hsl(217, 91%, 60%)" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[160px] text-xs text-muted-foreground">Sem dados</div>
+          )}
+        </div>
+
+        {/* Cash Flow Preview - placeholder chart from recurring data */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-foreground">Previsão de Caixa</h3>
             <Link to="/dashboard/cash-flow"><Button variant="ghost" size="sm" className="text-xs">Ver tudo →</Button></Link>
           </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={cashFlowPreview}>
-              <defs>
-                <linearGradient id="cfPreview" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-              <Area type="monotone" dataKey="balance" stroke="hsl(217, 91%, 60%)" fill="url(#cfPreview)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Expenses by Category */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Despesas por Categoria</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={categoryData} layout="vertical">
-              <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={70} />
-              <Bar dataKey="value" fill="hsl(217, 91%, 60%)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-center h-[160px] text-xs text-muted-foreground">
+            <Link to="/dashboard/forecast" className="text-primary hover:underline">Ver previsão completa →</Link>
+          </div>
         </div>
 
         {/* Upcoming Financial Commitments */}
@@ -241,7 +260,7 @@ export default function DashboardPage() {
             <Link to="/dashboard/recurring"><Button variant="ghost" size="sm" className="text-xs">Gerenciar →</Button></Link>
           </div>
           <div className="space-y-3">
-            {upcomingCommitments.map((c, i) => (
+            {upcomingCommitments.length > 0 ? upcomingCommitments.map((c, i) => (
               <div key={i} className="flex items-center justify-between py-1.5">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${c.type === "income" ? "bg-primary/10" : "bg-secondary"}`}>
@@ -254,7 +273,9 @@ export default function DashboardPage() {
                 </div>
                 <p className={`text-xs font-semibold ${c.type === "income" ? "text-primary" : "text-foreground"}`}>{c.type === "expense" ? "-" : "+"}{c.amount}</p>
               </div>
-            ))}
+            )) : (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma recorrência cadastrada.</p>
+            )}
           </div>
         </div>
 
@@ -265,7 +286,7 @@ export default function DashboardPage() {
             <Link to="/dashboard/transactions"><Button variant="ghost" size="sm" className="text-xs">Ver todas →</Button></Link>
           </div>
           <div className="space-y-3">
-            {recentTransactions.map((tx, i) => (
+            {data.recentTransactions.length > 0 ? data.recentTransactions.map((tx, i) => (
               <div key={i} className="flex items-center justify-between py-1.5">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${tx.type === "income" ? "bg-primary/10" : "bg-secondary"}`}>
@@ -278,7 +299,9 @@ export default function DashboardPage() {
                 </div>
                 <p className={`text-xs font-semibold ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>{tx.amount}</p>
               </div>
-            ))}
+            )) : (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma transação registrada.</p>
+            )}
           </div>
         </div>
       </div>
