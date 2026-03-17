@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Loader2, Brain, Calendar, DollarSign, Target } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useFinancialData } from "@/hooks/useFinancialData";
 
 type Period = 30 | 60 | 90;
 
@@ -17,70 +17,6 @@ interface ForecastData {
   cashFlowData: { day: string; balance: number; income: number; expenses: number }[];
   alerts: { type: "warning" | "danger" | "info"; title: string; text: string }[];
 }
-
-// Recurring commitments used for forecast modeling
-const recurringItems = [
-  { amount: 35000, type: "expense", frequency: "monthly" },
-  { amount: 4500, type: "expense", frequency: "monthly" },
-  { amount: 289, type: "expense", frequency: "monthly" },
-  { amount: 450, type: "expense", frequency: "monthly" },
-  { amount: 1200, type: "expense", frequency: "yearly" },
-  { amount: 15000, type: "income", frequency: "monthly" },
-  { amount: 8500, type: "income", frequency: "monthly" },
-];
-
-const recurringDailyIncome = recurringItems.filter(r => r.type === "income").reduce((s, r) => {
-  if (r.frequency === "weekly") return s + (r.amount * 4) / 30;
-  if (r.frequency === "yearly") return s + r.amount / 365;
-  return s + r.amount / 30;
-}, 0);
-
-const recurringDailyExpense = recurringItems.filter(r => r.type === "expense").reduce((s, r) => {
-  if (r.frequency === "weekly") return s + (r.amount * 4) / 30;
-  if (r.frequency === "yearly") return s + r.amount / 365;
-  return s + r.amount / 30;
-}, 0);
-
-const generateProjection = (days: number): ForecastData => {
-  const baseIncome = 127450;
-  const baseExpenses = 84230;
-  // Blend historical trend with recurring commitments
-  const dailyIncome = (baseIncome / 30 + recurringDailyIncome) / 2 + recurringDailyIncome / 2;
-  const dailyExpenses = (baseExpenses / 30 + recurringDailyExpense) / 2 + recurringDailyExpense / 2;
-  let balance = 185000;
-  const data: ForecastData["cashFlowData"] = [];
-
-  for (let d = 1; d <= days; d++) {
-    const variance = 1 + (Math.random() - 0.5) * 0.15;
-    const incomeToday = dailyIncome * variance;
-    const expenseToday = dailyExpenses * (1 + (Math.random() - 0.5) * 0.1);
-    balance += incomeToday - expenseToday;
-    const date = new Date();
-    date.setDate(date.getDate() + d);
-    data.push({
-      day: `${date.getDate()}/${date.getMonth() + 1}`,
-      balance: Math.round(balance),
-      income: Math.round(incomeToday),
-      expenses: Math.round(expenseToday),
-    });
-  }
-
-  const projectedIncome = Math.round(dailyIncome * days * (1 + Math.random() * 0.05));
-  const projectedExpenses = Math.round(dailyExpenses * days * (1 + Math.random() * 0.03));
-
-  return {
-    projectedIncome,
-    projectedExpenses,
-    projectedBalance: Math.round(balance),
-    confidence: days === 30 ? 87 : days === 60 ? 74 : 62,
-    cashFlowData: data,
-    alerts: [
-      { type: "warning", title: "Sazonalidade detectada", text: `Baseado no histórico, a receita tende a cair 12% nos próximos ${days} dias. Prepare reservas.` },
-      { type: "info", title: "Recorrências mapeadas", text: `${recurringItems.length} transações recorrentes foram incluídas na projeção (R$ ${Math.round(recurringDailyIncome * 30).toLocaleString("pt-BR")} receita / R$ ${Math.round(recurringDailyExpense * 30).toLocaleString("pt-BR")} despesa mensal).` },
-      ...(days >= 60 ? [{ type: "danger" as const, title: "Alerta de caixa", text: `Com a tendência atual, sua empresa pode enfrentar aperto de caixa em ${Math.round(45 + Math.random() * 20)} dias.` }] : []),
-    ],
-  };
-};
 
 const alertStyles: Record<string, string> = {
   warning: "border-yellow-500/20 bg-yellow-500/5",
@@ -95,24 +31,96 @@ const alertIcons: Record<string, typeof TrendingUp> = {
 };
 
 export default function ForecastPage() {
+  const { data, isLoading: dataLoading } = useFinancialData();
   const [period, setPeriod] = useState<Period>(30);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<string>("");
+  const [aiAnalysis, setAiAnalysis] = useState("");
+
+  // Build forecast from REAL data: historical averages + recurring commitments
+  const generateProjection = useCallback((days: number): ForecastData | null => {
+    if (!data) return null;
+
+    const txs = data.transactions;
+    // Calculate average daily income/expense from last 3 months of transaction data
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    const recentTxs = txs.filter(t => new Date(t.date) >= threeMonthsAgo);
+
+    const daysCovered = Math.max(1, Math.ceil((now.getTime() - threeMonthsAgo.getTime()) / (1000 * 60 * 60 * 24)));
+    const histIncome = recentTxs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const histExpense = recentTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+    // Recurring monthly amounts
+    const recurringDailyIncome = data.recurringIncome / 30;
+    const recurringDailyExpense = data.recurringExpense / 30;
+
+    // Blend: 60% historical trend, 40% recurring base
+    const historicalDailyIncome = histIncome / daysCovered;
+    const historicalDailyExpense = histExpense / daysCovered;
+    const dailyIncome = historicalDailyIncome * 0.6 + recurringDailyIncome * 0.4 || recurringDailyIncome;
+    const dailyExpense = historicalDailyExpense * 0.6 + recurringDailyExpense * 0.4 || recurringDailyExpense;
+
+    // Start balance from current month's balance
+    let balance = data.profit > 0 ? data.profit * 3 : 10000; // rough estimate
+    const chartData: ForecastData["cashFlowData"] = [];
+
+    for (let d = 1; d <= days; d++) {
+      const variance = 1 + (Math.sin(d * 0.3) * 0.08); // smoother variance than random
+      const incomeToday = dailyIncome * variance;
+      const expenseToday = dailyExpense * (1 + Math.cos(d * 0.2) * 0.05);
+      balance += incomeToday - expenseToday;
+      const date = new Date();
+      date.setDate(date.getDate() + d);
+      chartData.push({
+        day: `${date.getDate()}/${date.getMonth() + 1}`,
+        balance: Math.round(balance),
+        income: Math.round(incomeToday),
+        expenses: Math.round(expenseToday),
+      });
+    }
+
+    const projectedIncome = Math.round(dailyIncome * days);
+    const projectedExpenses = Math.round(dailyExpense * days);
+    const dataPoints = recentTxs.length;
+
+    // Confidence based on data quality
+    const baseConfidence = days === 30 ? 85 : days === 60 ? 70 : 58;
+    const dataBonus = Math.min(15, dataPoints / 2);
+    const confidence = Math.min(95, Math.round(baseConfidence + dataBonus));
+
+    const alerts: ForecastData["alerts"] = [];
+    if (dailyExpense > dailyIncome) {
+      alerts.push({ type: "danger", title: "Despesas maiores que receita", text: `Tendência atual mostra despesas diárias (R$ ${Math.round(dailyExpense).toLocaleString("pt-BR")}) superiores à receita (R$ ${Math.round(dailyIncome).toLocaleString("pt-BR")}). Atenção ao fluxo de caixa.` });
+    }
+    if (data.recurringExpense > data.recurringIncome * 1.5) {
+      alerts.push({ type: "warning", title: "Despesas recorrentes altas", text: `Despesas fixas (R$ ${data.recurringExpense.toLocaleString("pt-BR")}/mês) representam ${Math.round(data.recurringExpense / (data.totalRevenue || 1) * 100)}% da receita.` });
+    }
+    alerts.push({ type: "info", title: "Base de dados", text: `Projeção baseada em ${dataPoints} transações dos últimos 3 meses e ${data.recurringTransactions.filter(r => r.isActive).length} recorrências ativas.` });
+
+    return {
+      projectedIncome,
+      projectedExpenses,
+      projectedBalance: Math.round(balance),
+      confidence,
+      cashFlowData: chartData,
+      alerts,
+    };
+  }, [data]);
 
   const generate = useCallback(() => {
     setLoading(true);
     setTimeout(() => {
       setForecast(generateProjection(period));
       setLoading(false);
-    }, 600);
-  }, [period]);
+    }, 300);
+  }, [period, generateProjection]);
 
-  useEffect(() => { generate(); }, [generate]);
+  useEffect(() => { if (data) generate(); }, [data, generate]);
 
   const fetchAiAnalysis = async () => {
-    if (!forecast) return;
+    if (!forecast || !data) return;
     setAiLoading(true);
     try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
@@ -129,7 +137,9 @@ export default function ForecastPage() {
 - Despesas projetadas: R$ ${forecast.projectedExpenses.toLocaleString("pt-BR")}
 - Saldo projetado: R$ ${forecast.projectedBalance.toLocaleString("pt-BR")}
 - Confiança: ${forecast.confidence}%
-- Tendência: receita mensal atual R$ 127.450, despesas R$ 84.230
+- Receita mensal atual: R$ ${data.totalRevenue.toLocaleString("pt-BR")}
+- Despesas mensais atuais: R$ ${data.totalExpenses.toLocaleString("pt-BR")}
+- Recorrência mensal: R$ ${data.recurringIncome.toLocaleString("pt-BR")} receita / R$ ${data.recurringExpense.toLocaleString("pt-BR")} despesa
 Foque em riscos, oportunidades e ações concretas.`
           }],
         }),
@@ -163,12 +173,16 @@ Foque em riscos, oportunidades e ações concretas.`
     } catch { toast.error("Erro na análise AI."); } finally { setAiLoading(false); }
   };
 
+  if (dataLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Previsão Financeira</h1>
-          <p className="text-sm text-muted-foreground">Projeções baseadas em tendências e recorrências</p>
+          <p className="text-sm text-muted-foreground">Projeções baseadas em seus dados reais e recorrências</p>
         </div>
         <Button variant="outline" onClick={generate} disabled={loading}>
           {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1.5 h-4 w-4" />}
@@ -176,7 +190,6 @@ Foque em riscos, oportunidades e ações concretas.`
         </Button>
       </div>
 
-      {/* Period Selector */}
       <div className="flex gap-2">
         {([30, 60, 90] as Period[]).map(p => (
           <Button key={p} variant={period === p ? "default" : "outline"} size="sm" onClick={() => setPeriod(p)}>
@@ -187,7 +200,6 @@ Foque em riscos, oportunidades e ações concretas.`
 
       {forecast && !loading && (
         <>
-          {/* Projection KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center justify-between">
@@ -225,7 +237,6 @@ Foque em riscos, oportunidades e ações concretas.`
             </motion.div>
           </div>
 
-          {/* Cash Flow Chart */}
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
               <h3 className="text-sm font-semibold text-foreground mb-4">Projeção de Fluxo de Caixa — {period} dias</h3>
@@ -240,13 +251,11 @@ Foque em riscos, oportunidades e ações concretas.`
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} interval={Math.floor(period / 8)} />
                   <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
-                  <ReferenceLine y={185000} stroke="hsl(220, 9%, 70%)" strokeDasharray="4 4" label={{ value: "Saldo Atual", fontSize: 11, fill: "hsl(220, 9%, 46%)" }} />
                   <Area type="monotone" dataKey="balance" stroke="hsl(217, 91%, 60%)" fill="url(#balGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
-            {/* AI Alerts */}
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="h-5 w-5 text-primary" />
@@ -272,7 +281,6 @@ Foque em riscos, oportunidades e ações concretas.`
             </div>
           </div>
 
-          {/* AI Deep Analysis */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -289,13 +297,13 @@ Foque em riscos, oportunidades e ações concretas.`
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{aiAnalysis}</p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Clique em "Gerar Análise" para a AI avaliar sua previsão financeira e recomendar ações estratégicas.</p>
+              <p className="text-sm text-muted-foreground">Clique em "Gerar Análise" para a AI avaliar sua previsão financeira com base nos seus dados reais.</p>
             )}
           </div>
         </>
       )}
 
-      {loading && (
+      {(loading || (!forecast && !dataLoading)) && (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin mb-3" />
           <p className="text-sm">Calculando projeções para {period} dias...</p>

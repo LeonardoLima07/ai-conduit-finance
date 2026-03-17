@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Calendar, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Calendar, MoreHorizontal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,32 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-  type: "income" | "expense";
-  clientOrSupplier: string;
-  paymentStatus: "pending" | "paid" | "overdue" | "cancelled";
-}
-
-const sampleTransactions: Transaction[] = [
-  { id: "1", date: "2026-03-11", description: "Pagamento — Empresa ABC", category: "Serviços", amount: 15000, type: "income", clientOrSupplier: "Empresa ABC", paymentStatus: "paid" },
-  { id: "2", date: "2026-03-11", description: "Adobe Creative Cloud", category: "Software", amount: 289, type: "expense", clientOrSupplier: "Adobe", paymentStatus: "paid" },
-  { id: "3", date: "2026-03-10", description: "Google Ads", category: "Marketing", amount: 3200, type: "expense", clientOrSupplier: "Google", paymentStatus: "paid" },
-  { id: "4", date: "2026-03-10", description: "Consultoria — Loja XYZ", category: "Consultoria", amount: 8500, type: "income", clientOrSupplier: "Loja XYZ", paymentStatus: "paid" },
-  { id: "5", date: "2026-03-01", description: "Aluguel Escritório", category: "Aluguel", amount: 4500, type: "expense", clientOrSupplier: "Imobiliária Central", paymentStatus: "paid" },
-  { id: "6", date: "2026-03-01", description: "Salários", category: "Folha", amount: 35000, type: "expense", clientOrSupplier: "", paymentStatus: "paid" },
-  { id: "7", date: "2026-03-05", description: "Projeto Web — Cliente Delta", category: "Serviços", amount: 22000, type: "income", clientOrSupplier: "Cliente Delta", paymentStatus: "pending" },
-  { id: "8", date: "2026-02-28", description: "Internet e Telefone", category: "Infraestrutura", amount: 450, type: "expense", clientOrSupplier: "Vivo", paymentStatus: "paid" },
-  { id: "9", date: "2026-02-25", description: "Licenças de Software", category: "Software", amount: 1200, type: "expense", clientOrSupplier: "Microsoft", paymentStatus: "overdue" },
-  { id: "10", date: "2026-02-20", description: "Treinamento corporativo", category: "Serviços", amount: 18000, type: "income", clientOrSupplier: "Corp Training SA", paymentStatus: "paid" },
-];
-
-const categories = ["Todos", "Serviços", "Software", "Marketing", "Aluguel", "Folha", "Consultoria", "Infraestrutura"];
+import { useFinancialData } from "@/hooks/useFinancialData";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusStyles: Record<string, string> = {
   paid: "bg-primary/10 text-primary border-primary/20",
@@ -50,14 +26,23 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function TransactionsPage() {
-  const [transactions] = useState<Transaction[]>(sampleTransactions);
+  const { data, isLoading, refetch } = useFinancialData();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("Todos");
   const [showNew, setShowNew] = useState(false);
+  const [newTx, setNewTx] = useState({ description: "", amount: "", date: "", type: "expense", category: "Serviços", clientOrSupplier: "" });
+  const [saving, setSaving] = useState(false);
+
+  const transactions = data?.transactions ?? [];
+
+  const categories = useMemo(() => {
+    const cats = new Set(transactions.map(t => t.category));
+    return ["Todos", ...Array.from(cats).sort()];
+  }, [transactions]);
 
   const filtered = transactions.filter((t) => {
-    if (search && !t.description.toLowerCase().includes(search.toLowerCase()) && !t.clientOrSupplier.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !t.description.toLowerCase().includes(search.toLowerCase()) && !(t.clientOrSupplier || "").toLowerCase().includes(search.toLowerCase())) return false;
     if (filterType === "income" && t.type !== "income") return false;
     if (filterType === "expense" && t.type !== "expense") return false;
     if (filterCategory !== "Todos" && t.category !== filterCategory) return false;
@@ -67,12 +52,41 @@ export default function TransactionsPage() {
   const totalIncome = filtered.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpense = filtered.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
+  const handleSave = async () => {
+    if (!data?.companyId) { toast.error("Nenhuma empresa cadastrada."); return; }
+    if (!newTx.description || !newTx.amount) { toast.error("Preencha descrição e valor."); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("transactions").insert({
+        company_id: data.companyId,
+        description: newTx.description,
+        amount: parseFloat(newTx.amount),
+        date: newTx.date || new Date().toISOString().split("T")[0],
+        type: newTx.type,
+        category: newTx.category,
+        client_or_supplier: newTx.clientOrSupplier || null,
+        payment_status: "pending",
+      });
+      if (error) throw error;
+      toast.success("Transação criada!");
+      setShowNew(false);
+      setNewTx({ description: "", amount: "", date: "", type: "expense", category: "Serviços", clientOrSupplier: "" });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar.");
+    } finally { setSaving(false); }
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Transações</h1>
-          <p className="text-sm text-muted-foreground">Registros financeiros reais da sua empresa</p>
+          <p className="text-sm text-muted-foreground">Registros financeiros da sua empresa</p>
         </div>
         <Dialog open={showNew} onOpenChange={setShowNew}>
           <DialogTrigger asChild>
@@ -81,27 +95,28 @@ export default function TransactionsPage() {
           <DialogContent>
             <DialogHeader><DialogTitle>Nova Transação</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="space-y-2"><Label>Descrição</Label><Input placeholder="Ex: Pagamento do cliente ABC" /></div>
+              <div className="space-y-2"><Label>Descrição</Label><Input placeholder="Ex: Pagamento do cliente ABC" value={newTx.description} onChange={e => setNewTx(p => ({ ...p, description: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Valor (R$)</Label><Input type="number" placeholder="0,00" /></div>
-                <div className="space-y-2"><Label>Data</Label><Input type="date" /></div>
+                <div className="space-y-2"><Label>Valor (R$)</Label><Input type="number" placeholder="0,00" value={newTx.amount} onChange={e => setNewTx(p => ({ ...p, amount: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Data</Label><Input type="date" value={newTx.date} onChange={e => setNewTx(p => ({ ...p, date: e.target.value }))} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Tipo</Label>
-                  <Select><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <Select value={newTx.type} onValueChange={v => setNewTx(p => ({ ...p, type: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="income">Receita</SelectItem><SelectItem value="expense">Despesa</SelectItem></SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Categoria</Label>
-                  <Select><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{categories.filter(c => c !== "Todos").map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Input placeholder="Ex: Marketing" value={newTx.category} onChange={e => setNewTx(p => ({ ...p, category: e.target.value }))} />
                 </div>
               </div>
-              <div className="space-y-2"><Label>Cliente / Fornecedor</Label><Input placeholder="Ex: Empresa ABC" /></div>
-              <Button variant="hero" className="w-full" onClick={() => { setShowNew(false); toast.success("Transação criada! (demo)"); }}>Salvar Transação</Button>
+              <div className="space-y-2"><Label>Cliente / Fornecedor</Label><Input placeholder="Ex: Empresa ABC" value={newTx.clientOrSupplier} onChange={e => setNewTx(p => ({ ...p, clientOrSupplier: e.target.value }))} /></div>
+              <Button variant="hero" className="w-full" onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Transação
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -149,13 +164,8 @@ export default function TransactionsPage() {
           <span>Descrição</span><span>Data</span><span>Categoria</span><span className="text-right">Valor</span><span>Status</span><span></span>
         </div>
         {filtered.map((tx, i) => (
-          <motion.div
-            key={tx.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: i * 0.02 }}
-            className="grid grid-cols-[1fr_120px_140px_100px_100px_40px] gap-4 items-center px-5 py-3.5 border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
-          >
+          <motion.div key={tx.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+            className="grid grid-cols-[1fr_120px_140px_100px_100px_40px] gap-4 items-center px-5 py-3.5 border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
             <div className="flex items-center gap-3 min-w-0">
               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tx.type === "income" ? "bg-primary/10" : "bg-destructive/10"}`}>
                 {tx.type === "income" ? <ArrowUpRight className="h-4 w-4 text-primary" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />}
@@ -170,7 +180,7 @@ export default function TransactionsPage() {
             <p className={`text-sm font-semibold text-right ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
               {tx.type === "income" ? "+" : "-"}R$ {tx.amount.toLocaleString("pt-BR")}
             </p>
-            <Badge variant="outline" className={`w-fit text-xs ${statusStyles[tx.paymentStatus]}`}>{statusLabels[tx.paymentStatus]}</Badge>
+            <Badge variant="outline" className={`w-fit text-xs ${statusStyles[tx.paymentStatus] || ""}`}>{statusLabels[tx.paymentStatus] || tx.paymentStatus}</Badge>
             <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
           </motion.div>
         ))}

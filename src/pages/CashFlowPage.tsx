@@ -1,26 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, Brain, Loader2, RefreshCw, Shield, Zap, Target } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, Brain, Loader2, RefreshCw, Shield, Zap } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-
-const cashFlowHistory = [
-  { month: "Out", inflow: 98000, outflow: 71000, balance: 212000 },
-  { month: "Nov", inflow: 115000, outflow: 68000, balance: 259000 },
-  { month: "Dez", inflow: 127450, outflow: 84230, balance: 302220 },
-  { month: "Jan", inflow: 110000, outflow: 78000, balance: 334220 },
-  { month: "Fev", inflow: 120000, outflow: 82000, balance: 372220 },
-  { month: "Mar", inflow: 95000, outflow: 75000, balance: 392220 },
-];
-
-const weeklyFlow = [
-  { week: "Sem 1", income: 28000, expenses: 22000 },
-  { week: "Sem 2", income: 35000, expenses: 18000 },
-  { week: "Sem 3", income: 22000, expenses: 25000 },
-  { week: "Sem 4", income: 32000, expenses: 20000 },
-];
+import { useFinancialData } from "@/hooks/useFinancialData";
 
 interface AIInsight {
   type: "success" | "warning" | "danger" | "info";
@@ -36,22 +21,48 @@ const insightStyles: Record<string, string> = {
 };
 
 export default function CashFlowPage() {
-  const currentBalance = 392220;
-  const recurringMonthlyIncome = 23500; // from recurring transactions
-  const recurringMonthlyExpense = 40539; // from recurring transactions
-  const expectedIncome = 127450;
-  const expectedExpenses = 84230;
-  const projectedBalance = currentBalance + expectedIncome - expectedExpenses;
-  const cashFlowHealth = Math.min(100, Math.round((currentBalance / (expectedExpenses * 3)) * 100));
-
-  const [insights, setInsights] = useState<AIInsight[]>([
-    { type: "success", title: "Reserva saudável", text: "Você tem 4.7 meses de despesas em reserva. Acima do recomendado (3 meses)." },
-    { type: "warning", title: "Compromissos recorrentes", text: `R$ ${recurringMonthlyExpense.toLocaleString("pt-BR")}/mês em despesas fixas. Representa ${Math.round(recurringMonthlyExpense / expectedExpenses * 100)}% das despesas totais.` },
-    { type: "info", title: "Receita recorrente", text: `R$ ${recurringMonthlyIncome.toLocaleString("pt-BR")}/mês em contratos fixos garante ${Math.round(recurringMonthlyIncome / expectedIncome * 100)}% da receita.` },
-  ]);
+  const { data, isLoading: dataLoading } = useFinancialData();
+  const [insights, setInsights] = useState<AIInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
+  // Compute cash flow from real data
+  const currentBalance = data ? data.totalRevenue - data.totalExpenses : 0;
+  const expectedIncome = data?.totalRevenue ?? 0;
+  const expectedExpenses = data?.totalExpenses ?? 0;
+  const projectedBalance = currentBalance + expectedIncome - expectedExpenses;
+  const cashFlowHealth = expectedExpenses > 0 ? Math.min(100, Math.round((currentBalance / (expectedExpenses * 3)) * 100)) : 50;
+
+  // Build monthly history from real transaction data
+  const cashFlowHistory = data?.revenueByMonth.map(m => ({
+    month: m.month,
+    inflow: m.revenue,
+    outflow: m.expenses,
+    balance: m.revenue - m.expenses,
+  })) ?? [];
+
+  // Weekly flow from current month transactions
+  const weeklyFlow = (() => {
+    if (!data) return [];
+    const now = new Date();
+    const weeks: { week: string; income: number; expenses: number }[] = [];
+    for (let w = 0; w < 4; w++) {
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), 1 + w * 7);
+      const weekEnd = new Date(now.getFullYear(), now.getMonth(), 8 + w * 7);
+      const weekTxs = data.transactions.filter(t => {
+        const d = new Date(t.date);
+        return d >= weekStart && d < weekEnd && d.getMonth() === now.getMonth();
+      });
+      weeks.push({
+        week: `Sem ${w + 1}`,
+        income: weekTxs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0),
+        expenses: weekTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0),
+      });
+    }
+    return weeks;
+  })();
+
   const fetchInsights = useCallback(async () => {
+    if (!data) return;
     setLoadingInsights(true);
     try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-insights`, {
@@ -68,6 +79,8 @@ export default function CashFlowPage() {
             projectedBalance,
             cashFlowHealth,
             monthlyHistory: cashFlowHistory,
+            recurringIncome: data.recurringIncome,
+            recurringExpense: data.recurringExpense,
             context: "cash_flow_analysis",
           },
         }),
@@ -75,15 +88,20 @@ export default function CashFlowPage() {
       if (resp.status === 429) { toast.error("Limite excedido."); return; }
       if (resp.status === 402) { toast.error("Créditos insuficientes."); return; }
       if (resp.ok) {
-        const data = await resp.json();
-        if (data.insights) setInsights(data.insights);
+        const d = await resp.json();
+        if (d.insights) setInsights(d.insights);
       }
     } catch {} finally { setLoadingInsights(false); }
-  }, []);
+  }, [data]);
 
-  useEffect(() => { fetchInsights(); }, [fetchInsights]);
+  useEffect(() => { if (data) fetchInsights(); }, [data, fetchInsights]);
+
+  if (dataLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   const scoreColor = cashFlowHealth >= 80 ? "text-primary" : cashFlowHealth >= 50 ? "text-yellow-500" : "text-destructive";
+  const reserveMonths = expectedExpenses > 0 ? (currentBalance / expectedExpenses).toFixed(1) : "N/A";
 
   return (
     <div className="p-6 md:p-8 space-y-6">
@@ -92,7 +110,6 @@ export default function CashFlowPage() {
         <p className="text-sm text-muted-foreground">Controle inteligente do fluxo de caixa</p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Saldo Atual", value: currentBalance, icon: Wallet, color: "text-primary" },
@@ -112,28 +129,30 @@ export default function CashFlowPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Cash Flow Chart */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Evolução do Fluxo de Caixa</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={cashFlowHistory}>
-              <defs>
-                <linearGradient id="cfGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
-              <Area type="monotone" dataKey="balance" stroke="hsl(217, 91%, 60%)" fill="url(#cfGrad)" strokeWidth={2} name="Saldo" />
-              <Area type="monotone" dataKey="inflow" stroke="hsl(142, 76%, 36%)" fill="transparent" strokeWidth={1.5} strokeDasharray="4 4" name="Entradas" />
-              <Area type="monotone" dataKey="outflow" stroke="hsl(0, 84%, 60%)" fill="transparent" strokeWidth={1.5} strokeDasharray="4 4" name="Saídas" />
-            </AreaChart>
-          </ResponsiveContainer>
+          {cashFlowHistory.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={cashFlowHistory}>
+                <defs>
+                  <linearGradient id="cfGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
+                <Area type="monotone" dataKey="balance" stroke="hsl(217, 91%, 60%)" fill="url(#cfGrad)" strokeWidth={2} name="Saldo" />
+                <Area type="monotone" dataKey="inflow" stroke="hsl(142, 76%, 36%)" fill="transparent" strokeWidth={1.5} strokeDasharray="4 4" name="Entradas" />
+                <Area type="monotone" dataKey="outflow" stroke="hsl(0, 84%, 60%)" fill="transparent" strokeWidth={1.5} strokeDasharray="4 4" name="Saídas" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[280px] text-sm text-muted-foreground">Adicione transações para ver o fluxo de caixa.</div>
+          )}
         </div>
 
-        {/* Health Score */}
         <div className="rounded-xl border border-border bg-card p-5 space-y-5">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
@@ -147,31 +166,32 @@ export default function CashFlowPage() {
               {cashFlowHealth >= 80 ? "Excelente" : cashFlowHealth >= 50 ? "Regular" : "Crítico"}
             </p>
           </div>
-
           <div className="space-y-2 text-xs text-muted-foreground">
-            <div className="flex justify-between"><span>Reserva de emergência</span><span className="font-medium text-primary">4.7 meses</span></div>
-            <div className="flex justify-between"><span>Cobertura de despesas</span><span className="font-medium text-primary">156%</span></div>
-            <div className="flex justify-between"><span>Tendência de caixa</span><span className="font-medium text-primary">↑ Crescente</span></div>
+            <div className="flex justify-between"><span>Reserva de emergência</span><span className="font-medium text-primary">{reserveMonths} meses</span></div>
+            <div className="flex justify-between"><span>Rec. recorrente mensal</span><span className="font-medium text-primary">R$ {(data?.recurringIncome ?? 0).toLocaleString("pt-BR")}</span></div>
+            <div className="flex justify-between"><span>Desp. recorrente mensal</span><span className="font-medium text-foreground">R$ {(data?.recurringExpense ?? 0).toLocaleString("pt-BR")}</span></div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Weekly Breakdown */}
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Fluxo Semanal — Março</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weeklyFlow}>
-              <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
-              <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
-              <Bar dataKey="income" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} name="Receita" />
-              <Bar dataKey="expenses" fill="hsl(220, 9%, 70%)" radius={[4, 4, 0, 0]} name="Despesas" />
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Fluxo Semanal</h3>
+          {weeklyFlow.some(w => w.income > 0 || w.expenses > 0) ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={weeklyFlow}>
+                <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+                <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
+                <Bar dataKey="income" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} name="Receita" />
+                <Bar dataKey="expenses" fill="hsl(220, 9%, 70%)" radius={[4, 4, 0, 0]} name="Despesas" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[200px] text-xs text-muted-foreground">Sem dados semanais</div>
+          )}
         </div>
 
-        {/* AI Analysis */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -183,7 +203,7 @@ export default function CashFlowPage() {
             </Button>
           </div>
           <div className="space-y-3">
-            {insights.map((ins, i) => (
+            {insights.length > 0 ? insights.map((ins, i) => (
               <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
                 className={`rounded-lg border p-3 ${insightStyles[ins.type]}`}>
                 <div className="flex items-start gap-2">
@@ -194,7 +214,9 @@ export default function CashFlowPage() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+            )) : (
+              <p className="text-xs text-muted-foreground text-center py-4">{loadingInsights ? "Analisando..." : "Adicione transações para gerar insights."}</p>
+            )}
           </div>
         </div>
       </div>

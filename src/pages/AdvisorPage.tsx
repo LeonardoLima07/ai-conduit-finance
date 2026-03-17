@@ -4,15 +4,11 @@ import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useFinancialData } from "@/hooks/useFinancialData";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-const welcomeMessage: Msg = {
-  role: "assistant",
-  content: "Olá! 👋 Sou o **Business Copilot** da Contuit — seu parceiro estratégico financeiro.\n\nAnalisei seus dados e identifiquei alguns pontos importantes:\n\n• 📈 Sua receita cresceu **8.5%** nos últimos 3 meses\n• ⚠️ Suas despesas cresceram **12.3%** — acima da receita\n• 💰 Margem de lucro: **33.9%** (saudável para seu setor)\n• 🎯 Faltam **R$ 16.780** para sua meta de lucro\n\nComo posso ajudar hoje?",
-};
 
 const suggestedQuestions = [
   { icon: DollarSign, text: "Posso contratar mais um funcionário?" },
@@ -31,11 +27,31 @@ const strategicQuestions = [
 ];
 
 export default function AdvisorPage() {
-  const [messages, setMessages] = useState<Msg[]>([welcomeMessage]);
+  const { data } = useFinancialData();
+
+  const buildWelcome = (): Msg => {
+    if (!data || data.totalRevenue === 0) {
+      return {
+        role: "assistant",
+        content: "Olá! 👋 Sou o **Business Copilot** da Contuit — seu parceiro estratégico financeiro.\n\nAinda não encontrei dados financeiros registrados. Para que eu possa te ajudar com análises precisas:\n\n• 📝 Registre suas **transações** (receitas e despesas)\n• 🏢 Complete o **briefing da empresa**\n• 🔄 Cadastre suas **recorrências** (salários, aluguéis, contratos)\n\nCom esses dados, posso analisar sua saúde financeira, identificar oportunidades e alertar sobre riscos.\n\nComo posso ajudar hoje?",
+      };
+    }
+    return {
+      role: "assistant",
+      content: `Olá! 👋 Sou o **Business Copilot** da Contuit — seu parceiro estratégico financeiro.\n\nAnalisei os dados da **${data.companyName}** e identifiquei:\n\n• 💰 Receita mensal: **R$ ${data.totalRevenue.toLocaleString("pt-BR")}**\n• 📊 Despesas: **R$ ${data.totalExpenses.toLocaleString("pt-BR")}**\n• ${data.profit >= 0 ? "✅" : "⚠️"} Lucro: **R$ ${data.profit.toLocaleString("pt-BR")}** (margem ${data.profitMargin.toFixed(1)}%)\n• 🔄 Receita recorrente: **R$ ${data.recurringIncome.toLocaleString("pt-BR")}**/mês\n\nComo posso ajudar hoje?`,
+    };
+  };
+
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showStrategic, setShowStrategic] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Update welcome message when data loads
+  useEffect(() => {
+    setMessages([buildWelcome()]);
+  }, [data]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -59,7 +75,22 @@ export default function AdvisorPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: allMessages.map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({
+          messages: allMessages.map(m => ({ role: m.role, content: m.content })),
+          financialContext: data ? {
+            companyName: data.companyName,
+            industry: data.industry,
+            employeeCount: data.employeeCount,
+            totalRevenue: data.totalRevenue,
+            totalExpenses: data.totalExpenses,
+            profit: data.profit,
+            profitMargin: data.profitMargin,
+            recurringIncome: data.recurringIncome,
+            recurringExpense: data.recurringExpense,
+            expensesByCategory: data.expensesByCategory,
+            revenueByMonth: data.revenueByMonth,
+          } : null,
+        }),
       });
 
       if (resp.status === 429) { toast.error("Limite de requisições excedido. Aguarde um momento."); setIsLoading(false); return; }
@@ -130,7 +161,6 @@ export default function AdvisorPage() {
 
   return (
     <div className="flex h-[calc(100vh)] flex-col">
-      {/* Header */}
       <div className="border-b border-border px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero">
@@ -143,7 +173,6 @@ export default function AdvisorPage() {
         </div>
       </div>
 
-      {/* Chat area */}
       <div className="flex-1 overflow-auto p-6 space-y-4" ref={scrollRef}>
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -169,16 +198,12 @@ export default function AdvisorPage() {
           </div>
         )}
 
-        {/* Suggested questions on first interaction */}
         {messages.length === 1 && (
           <div className="space-y-4 pt-2">
             <div className="flex flex-wrap gap-2">
               {suggestedQuestions.map((q) => (
-                <button
-                  key={q.text}
-                  onClick={() => sendMessage(q.text)}
-                  className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
-                >
+                <button key={q.text} onClick={() => sendMessage(q.text)}
+                  className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
                   <q.icon className="h-3 w-3" />
                   {q.text}
                 </button>
@@ -187,7 +212,6 @@ export default function AdvisorPage() {
           </div>
         )}
 
-        {/* Strategic Questions Section */}
         {showStrategic && messages.length <= 2 && (
           <div className="mt-6 rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -195,16 +219,11 @@ export default function AdvisorPage() {
               <h3 className="text-sm font-semibold text-foreground">Perguntas Estratégicas</h3>
               <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Coach Mode</span>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Reflita sobre essas perguntas para melhorar suas decisões financeiras:
-            </p>
+            <p className="text-xs text-muted-foreground mb-3">Reflita sobre essas perguntas para melhorar suas decisões financeiras:</p>
             <div className="grid gap-2">
               {strategicQuestions.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => sendMessage(q)}
-                  className="text-left rounded-lg border border-border/50 bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
-                >
+                <button key={q} onClick={() => sendMessage(q)}
+                  className="text-left rounded-lg border border-border/50 bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
                   💡 {q}
                 </button>
               ))}
@@ -213,16 +232,10 @@ export default function AdvisorPage() {
         )}
       </div>
 
-      {/* Input */}
       <div className="border-t border-border p-4">
         <div className="flex gap-2">
-          <Input
-            placeholder="Pergunte sobre seu negócio, finanças ou estratégia..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-            disabled={isLoading}
-          />
+          <Input placeholder="Pergunte sobre seu negócio, finanças ou estratégia..." value={input} onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage(input)} disabled={isLoading} />
           <Button variant="hero" size="icon" onClick={() => sendMessage(input)} disabled={isLoading || !input.trim()}>
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
