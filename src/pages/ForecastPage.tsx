@@ -62,8 +62,10 @@ export default function ForecastPage() {
     const dailyIncome = historicalDailyIncome * 0.6 + recurringDailyIncome * 0.4 || recurringDailyIncome;
     const dailyExpense = historicalDailyExpense * 0.6 + recurringDailyExpense * 0.4 || recurringDailyExpense;
 
-    // Start balance from current month's balance
-    let balance = data.profit > 0 ? data.profit * 3 : 10000; // rough estimate
+    // Start balance = accumulated balance from ALL historical transactions
+    const allIncome = txs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const allExpense = txs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    let balance = allIncome - allExpense;
     const chartData: ForecastData["cashFlowData"] = [];
 
     for (let d = 1; d <= days; d++) {

@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Building2, Users, DollarSign, Target, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Building2, Users, DollarSign, Target, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const industries = [
   "Comércio / Varejo", "Serviços", "Tecnologia", "Saúde", "Educação",
@@ -33,33 +36,18 @@ function StepCompanyInfo({ data, onChange }: StepProps) {
     <div className="space-y-5">
       <div className="space-y-2">
         <Label>Nome da Empresa</Label>
-        <Input
-          placeholder="Minha Empresa LTDA"
-          value={(data.companyName as string) || ""}
-          onChange={(e) => onChange("companyName", e.target.value)}
-        />
+        <Input placeholder="Minha Empresa LTDA" value={(data.companyName as string) || ""} onChange={(e) => onChange("companyName", e.target.value)} />
       </div>
       <div className="space-y-2">
         <Label>CNPJ</Label>
-        <Input
-          placeholder="12.345.678/0001-90"
-          value={(data.cnpj as string) || ""}
-          onChange={(e) => onChange("cnpj", e.target.value)}
-        />
+        <Input placeholder="12.345.678/0001-90" value={(data.cnpj as string) || ""} onChange={(e) => onChange("cnpj", e.target.value)} />
       </div>
       <div className="space-y-2">
         <Label>Setor / Indústria</Label>
         <div className="grid grid-cols-2 gap-2">
           {industries.map((ind) => (
-            <button
-              key={ind}
-              onClick={() => onChange("industry", ind)}
-              className={`rounded-lg border px-3 py-2 text-sm text-left transition-all ${
-                data.industry === ind
-                  ? "border-primary bg-primary/10 text-primary font-medium"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-              }`}
-            >
+            <button key={ind} onClick={() => onChange("industry", ind)}
+              className={`rounded-lg border px-3 py-2 text-sm text-left transition-all ${data.industry === ind ? "border-primary bg-primary/10 text-primary font-medium" : "border-border bg-card text-muted-foreground hover:border-primary/30"}`}>
               {ind}
             </button>
           ))}
@@ -76,15 +64,8 @@ function StepTeamSize({ data, onChange }: StepProps) {
         <Label>Quantos funcionários?</Label>
         <div className="grid grid-cols-2 gap-2">
           {employeeRanges.map((range) => (
-            <button
-              key={range}
-              onClick={() => onChange("employees", range)}
-              className={`rounded-lg border px-3 py-2.5 text-sm text-left transition-all ${
-                data.employees === range
-                  ? "border-primary bg-primary/10 text-primary font-medium"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-              }`}
-            >
+            <button key={range} onClick={() => onChange("employees", range)}
+              className={`rounded-lg border px-3 py-2.5 text-sm text-left transition-all ${data.employees === range ? "border-primary bg-primary/10 text-primary font-medium" : "border-border bg-card text-muted-foreground hover:border-primary/30"}`}>
               {range}
             </button>
           ))}
@@ -92,11 +73,7 @@ function StepTeamSize({ data, onChange }: StepProps) {
       </div>
       <div className="space-y-2">
         <Label>Principais produtos / serviços</Label>
-        <Input
-          placeholder="Ex: Consultoria de marketing, E-commerce de roupas..."
-          value={(data.products as string) || ""}
-          onChange={(e) => onChange("products", e.target.value)}
-        />
+        <Input placeholder="Ex: Consultoria de marketing, E-commerce de roupas..." value={(data.products as string) || ""} onChange={(e) => onChange("products", e.target.value)} />
       </div>
     </div>
   );
@@ -109,15 +86,8 @@ function StepRevenue({ data, onChange }: StepProps) {
         <Label>Faturamento mensal aproximado</Label>
         <div className="grid grid-cols-1 gap-2">
           {revenueRanges.map((range) => (
-            <button
-              key={range}
-              onClick={() => onChange("revenue", range)}
-              className={`rounded-lg border px-4 py-3 text-sm text-left transition-all ${
-                data.revenue === range
-                  ? "border-primary bg-primary/10 text-primary font-medium"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-              }`}
-            >
+            <button key={range} onClick={() => onChange("revenue", range)}
+              className={`rounded-lg border px-4 py-3 text-sm text-left transition-all ${data.revenue === range ? "border-primary bg-primary/10 text-primary font-medium" : "border-border bg-card text-muted-foreground hover:border-primary/30"}`}>
               {range}
             </button>
           ))}
@@ -125,11 +95,7 @@ function StepRevenue({ data, onChange }: StepProps) {
       </div>
       <div className="space-y-2">
         <Label>Preço médio dos seus produtos/serviços</Label>
-        <Input
-          placeholder="Ex: R$ 500"
-          value={(data.avgPrice as string) || ""}
-          onChange={(e) => onChange("avgPrice", e.target.value)}
-        />
+        <Input placeholder="Ex: R$ 500" value={(data.avgPrice as string) || ""} onChange={(e) => onChange("avgPrice", e.target.value)} />
       </div>
     </div>
   );
@@ -138,12 +104,7 @@ function StepRevenue({ data, onChange }: StepProps) {
 function StepGoals({ data, onChange }: StepProps) {
   const selectedGoals = (data.goals as string[]) || [];
   const toggleGoal = (goal: string) => {
-    onChange(
-      "goals",
-      selectedGoals.includes(goal)
-        ? selectedGoals.filter((g) => g !== goal)
-        : [...selectedGoals, goal]
-    );
+    onChange("goals", selectedGoals.includes(goal) ? selectedGoals.filter((g) => g !== goal) : [...selectedGoals, goal]);
   };
 
   return (
@@ -152,15 +113,8 @@ function StepGoals({ data, onChange }: StepProps) {
         <Label>Quais são seus principais objetivos? (selecione vários)</Label>
         <div className="grid grid-cols-1 gap-2">
           {goals.map((goal) => (
-            <button
-              key={goal}
-              onClick={() => toggleGoal(goal)}
-              className={`rounded-lg border px-4 py-3 text-sm text-left transition-all ${
-                selectedGoals.includes(goal)
-                  ? "border-primary bg-primary/10 text-primary font-medium"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-              }`}
-            >
+            <button key={goal} onClick={() => toggleGoal(goal)}
+              className={`rounded-lg border px-4 py-3 text-sm text-left transition-all ${selectedGoals.includes(goal) ? "border-primary bg-primary/10 text-primary font-medium" : "border-border bg-card text-muted-foreground hover:border-primary/30"}`}>
               {goal}
             </button>
           ))}
@@ -168,11 +122,7 @@ function StepGoals({ data, onChange }: StepProps) {
       </div>
       <div className="space-y-2">
         <Label>Maiores desafios atuais</Label>
-        <Input
-          placeholder="Ex: Fluxo de caixa instável, muitos impostos..."
-          value={(data.challenges as string) || ""}
-          onChange={(e) => onChange("challenges", e.target.value)}
-        />
+        <Input placeholder="Ex: Fluxo de caixa instável, muitos impostos..." value={(data.challenges as string) || ""} onChange={(e) => onChange("challenges", e.target.value)} />
       </div>
     </div>
   );
@@ -187,35 +137,80 @@ const steps = [
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [data, setData] = useState<Record<string, string | string[]>>({});
+  const [formData, setFormData] = useState<Record<string, string | string[]>>({});
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleChange = (key: string, value: string | string[]) => {
-    setData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   const StepComponent = steps[currentStep].component;
 
-  const handleFinish = () => {
-    // In production, save to Supabase and configure AI agent
-    navigate("/dashboard");
+  const handleFinish = async () => {
+    if (!user) { toast.error("Você precisa estar logado."); return; }
+    if (!formData.companyName) { toast.error("Preencha o nome da empresa."); return; }
+
+    setSaving(true);
+    try {
+      // Check if company already exists
+      const { data: existing } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        // Update existing company
+        const { error } = await supabase
+          .from("companies")
+          .update({
+            name: formData.companyName as string,
+            cnpj: (formData.cnpj as string) || null,
+            industry: (formData.industry as string) || null,
+            employee_count: (formData.employees as string) || null,
+            monthly_revenue: (formData.revenue as string) || null,
+            products: (formData.products as string) || null,
+            goals: (formData.goals as string[]) || null,
+            challenges: (formData.challenges as string) || null,
+          })
+          .eq("id", existing[0].id);
+        if (error) throw error;
+      } else {
+        // Create new company
+        const { error } = await supabase.from("companies").insert({
+          user_id: user.id,
+          name: formData.companyName as string,
+          cnpj: (formData.cnpj as string) || null,
+          industry: (formData.industry as string) || null,
+          employee_count: (formData.employees as string) || null,
+          monthly_revenue: (formData.revenue as string) || null,
+          products: (formData.products as string) || null,
+          goals: (formData.goals as string[]) || null,
+          challenges: (formData.challenges as string) || null,
+        });
+        if (error) throw error;
+      }
+
+      toast.success("Empresa configurada com sucesso!");
+      navigate("/dashboard");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao salvar: " + (e.message || "Tente novamente."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6 bg-background">
       <div className="w-full max-w-lg">
-        {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             {steps.map((step, i) => (
               <div key={i} className="flex items-center gap-2">
-                <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all ${
-                    i <= currentStep
-                      ? "bg-gradient-hero text-primary-foreground"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
+                <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all ${i <= currentStep ? "bg-gradient-hero text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
                   {i < currentStep ? "✓" : i + 1}
                 </div>
                 {i < steps.length - 1 && (
@@ -226,15 +221,8 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Step Content */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
+          <motion.div key={currentStep} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-2">
                 {(() => { const Icon = steps[currentStep].icon; return <Icon className="h-6 w-6 text-primary" />; })()}
@@ -244,18 +232,13 @@ export default function OnboardingPage() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-6">
-              <StepComponent data={data} onChange={handleChange} />
+              <StepComponent data={formData} onChange={handleChange} />
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation */}
         <div className="mt-6 flex justify-between">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentStep((p) => p - 1)}
-            disabled={currentStep === 0}
-          >
+          <Button variant="outline" onClick={() => setCurrentStep((p) => p - 1)} disabled={currentStep === 0}>
             <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
           </Button>
           {currentStep < steps.length - 1 ? (
@@ -263,8 +246,9 @@ export default function OnboardingPage() {
               Próximo <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           ) : (
-            <Button variant="hero" onClick={handleFinish}>
-              <Sparkles className="mr-1 h-4 w-4" /> Configurar meu AI Agent
+            <Button variant="hero" onClick={handleFinish} disabled={saving}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1 h-4 w-4" />}
+              {saving ? "Salvando..." : "Configurar meu AI Agent"}
             </Button>
           )}
         </div>

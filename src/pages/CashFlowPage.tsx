@@ -25,12 +25,19 @@ export default function CashFlowPage() {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
-  // Compute cash flow from real data
-  const currentBalance = data ? data.totalRevenue - data.totalExpenses : 0;
-  const expectedIncome = data?.totalRevenue ?? 0;
-  const expectedExpenses = data?.totalExpenses ?? 0;
-  const projectedBalance = currentBalance + expectedIncome - expectedExpenses;
-  const cashFlowHealth = expectedExpenses > 0 ? Math.min(100, Math.round((currentBalance / (expectedExpenses * 3)) * 100)) : 50;
+  // Compute cash flow from real data — accumulated balance from ALL transactions
+  const allTimeIncome = data?.transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0) ?? 0;
+  const allTimeExpenses = data?.transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0) ?? 0;
+  const currentBalance = allTimeIncome - allTimeExpenses;
+
+  // Expected = this month's values (already computed in useFinancialData)
+  const monthlyRevenue = data?.totalRevenue ?? 0;
+  const monthlyExpenses = data?.totalExpenses ?? 0;
+
+  // Projected = current balance + next month's net (recurring-based estimate)
+  const nextMonthNet = (data?.recurringIncome ?? 0) - (data?.recurringExpense ?? 0);
+  const projectedBalance = currentBalance + nextMonthNet;
+  const cashFlowHealth = monthlyExpenses > 0 ? Math.min(100, Math.round((currentBalance / (monthlyExpenses * 3)) * 100)) : 50;
 
   // Build monthly history from real transaction data
   const cashFlowHistory = data?.revenueByMonth.map(m => ({
