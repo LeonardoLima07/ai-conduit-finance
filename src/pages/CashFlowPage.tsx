@@ -81,8 +81,8 @@ export default function CashFlowPage() {
         body: JSON.stringify({
           financialData: {
             currentBalance,
-            expectedIncome,
-            expectedExpenses,
+            monthlyRevenue,
+            monthlyExpenses,
             projectedBalance,
             cashFlowHealth,
             monthlyHistory: cashFlowHistory,
