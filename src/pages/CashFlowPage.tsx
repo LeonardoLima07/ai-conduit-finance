@@ -108,7 +108,7 @@ export default function CashFlowPage() {
   }
 
   const scoreColor = cashFlowHealth >= 80 ? "text-primary" : cashFlowHealth >= 50 ? "text-yellow-500" : "text-destructive";
-  const reserveMonths = expectedExpenses > 0 ? (currentBalance / expectedExpenses).toFixed(1) : "N/A";
+  const reserveMonths = monthlyExpenses > 0 ? (currentBalance / monthlyExpenses).toFixed(1) : "N/A";
 
   return (
     <div className="p-6 md:p-8 space-y-6">
