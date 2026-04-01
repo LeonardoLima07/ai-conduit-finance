@@ -120,8 +120,8 @@ export default function CashFlowPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Saldo Atual", value: currentBalance, icon: Wallet, color: "text-primary" },
-          { label: "Receita Esperada", value: expectedIncome, icon: ArrowUpRight, color: "text-primary" },
-          { label: "Despesas Esperadas", value: expectedExpenses, icon: ArrowDownRight, color: "text-destructive" },
+          { label: "Receita Mensal", value: monthlyRevenue, icon: ArrowUpRight, color: "text-primary" },
+          { label: "Despesas Mensais", value: monthlyExpenses, icon: ArrowDownRight, color: "text-destructive" },
           { label: "Saldo Projetado", value: projectedBalance, icon: TrendingUp, color: "text-primary" },
         ].map((kpi, i) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
