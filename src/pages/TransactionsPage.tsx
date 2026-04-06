@@ -88,6 +88,7 @@ export default function TransactionsPage() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
+      {transactionsLimit && <TransactionLimitBanner used={transactionsUsed} limit={transactionsLimit} />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Transações</h1>
