@@ -30,11 +30,16 @@ const roadmapSteps = [
 
 export default function ProfitPlannerPage() {
   const { data, isLoading: dataLoading } = useFinancialData();
+  const { hasFeature } = useSubscription();
   const [targetInput, setTargetInput] = useState("");
   const [plan, setPlan] = useState<PlanResult | null>(null);
   const [targetProfit, setTargetProfit] = useState(0);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+
+  if (!hasFeature("profitPlanner")) {
+    return <UpgradePrompt feature="Meta de Lucro" requiredPlan="Pro" description="O Profit Planner calcula quanto você precisa faturar para atingir sua meta de lucro. Disponível a partir do plano Pro." />;
+  }
 
   const currentRevenue = data?.totalRevenue ?? 0;
   const currentExpenses = data?.totalExpenses ?? 0;

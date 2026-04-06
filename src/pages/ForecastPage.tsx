@@ -34,11 +34,16 @@ const alertIcons: Record<string, typeof TrendingUp> = {
 
 export default function ForecastPage() {
   const { data, isLoading: dataLoading } = useFinancialData();
+  const { hasFeature } = useSubscription();
   const [period, setPeriod] = useState<Period>(30);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState("");
+
+  if (!hasFeature("forecast")) {
+    return <UpgradePrompt feature="Previsão Financeira" requiredPlan="Business" description="O sistema de forecast projeta receitas, despesas e saldo para os próximos 30, 60 e 90 dias. Disponível a partir do plano Business." />;
+  }
 
   // Build forecast from REAL data: historical averages + recurring commitments
   const generateProjection = useCallback((days: number): ForecastData | null => {
