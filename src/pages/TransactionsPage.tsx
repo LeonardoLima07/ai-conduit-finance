@@ -72,6 +72,7 @@ export default function TransactionsPage() {
         payment_status: "pending",
       });
       if (error) throw error;
+      await incrementTransactionCount();
       toast.success("Transação criada!");
       setShowNew(false);
       setNewTx({ description: "", amount: "", date: "", type: "expense", category: "Serviços", clientOrSupplier: "" });
