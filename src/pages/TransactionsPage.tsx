@@ -58,6 +58,7 @@ export default function TransactionsPage() {
   const handleSave = async () => {
     if (!data?.companyId) { toast.error("Nenhuma empresa cadastrada."); return; }
     if (!newTx.description || !newTx.amount) { toast.error("Preencha descrição e valor."); return; }
+    if (!canAddTransaction()) { toast.error("Limite de transações atingido. Faça upgrade do seu plano."); return; }
     setSaving(true);
     try {
       const { error } = await supabase.from("transactions").insert({
