@@ -55,13 +55,13 @@ export default function AdvisorPage() {
     setMessages([buildWelcome()]);
   }, [data]);
 
-  if (!hasFeature("aiAdvisor")) {
-    return <UpgradePrompt feature="AI Advisor" requiredPlan="Pro" description="O AI Advisor analisa seus dados financeiros e gera recomendações personalizadas. Disponível a partir do plano Pro." />;
-  }
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  if (!hasFeature("aiAdvisor")) {
+    return <UpgradePrompt feature="AI Advisor" requiredPlan="Pro" description="O AI Advisor analisa seus dados financeiros e gera recomendações personalizadas. Disponível a partir do plano Pro." />;
+  }
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
