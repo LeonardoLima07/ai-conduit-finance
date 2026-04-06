@@ -29,6 +29,7 @@ const statusLabels: Record<string, string> = {
 
 export default function TransactionsPage() {
   const { data, isLoading, refetch } = useFinancialData();
+  const { canAddTransaction, incrementTransactionCount, transactionsUsed, transactionsLimit } = useSubscription();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("Todos");
