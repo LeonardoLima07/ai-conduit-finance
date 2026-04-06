@@ -5,6 +5,8 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useFinancialData } from "@/hooks/useFinancialData";
+import { useSubscription } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -28,6 +30,7 @@ const strategicQuestions = [
 
 export default function AdvisorPage() {
   const { data } = useFinancialData();
+  const { hasFeature } = useSubscription();
 
   const buildWelcome = (): Msg => {
     if (!data || data.totalRevenue === 0) {
@@ -48,7 +51,6 @@ export default function AdvisorPage() {
   const [showStrategic, setShowStrategic] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Update welcome message when data loads
   useEffect(() => {
     setMessages([buildWelcome()]);
   }, [data]);
@@ -56,6 +58,10 @@ export default function AdvisorPage() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  if (!hasFeature("aiAdvisor")) {
+    return <UpgradePrompt feature="AI Advisor" requiredPlan="Pro" description="O AI Advisor analisa seus dados financeiros e gera recomendações personalizadas. Disponível a partir do plano Pro." />;
+  }
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;

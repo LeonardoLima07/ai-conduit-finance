@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useFinancialData } from "@/hooks/useFinancialData";
+import { useSubscription } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 type Period = 30 | 60 | 90;
 
@@ -32,6 +34,7 @@ const alertIcons: Record<string, typeof TrendingUp> = {
 
 export default function ForecastPage() {
   const { data, isLoading: dataLoading } = useFinancialData();
+  const { hasFeature } = useSubscription();
   const [period, setPeriod] = useState<Period>(30);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +46,6 @@ export default function ForecastPage() {
     if (!data) return null;
 
     const txs = data.transactions;
-    // Calculate average daily income/expense from last 3 months of transaction data
     const now = new Date();
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
     const recentTxs = txs.filter(t => new Date(t.date) >= threeMonthsAgo);
@@ -52,24 +54,21 @@ export default function ForecastPage() {
     const histIncome = recentTxs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const histExpense = recentTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
-    // Recurring monthly amounts
     const recurringDailyIncome = data.recurringIncome / 30;
     const recurringDailyExpense = data.recurringExpense / 30;
 
-    // Blend: 60% historical trend, 40% recurring base
     const historicalDailyIncome = histIncome / daysCovered;
     const historicalDailyExpense = histExpense / daysCovered;
     const dailyIncome = historicalDailyIncome * 0.6 + recurringDailyIncome * 0.4 || recurringDailyIncome;
     const dailyExpense = historicalDailyExpense * 0.6 + recurringDailyExpense * 0.4 || recurringDailyExpense;
 
-    // Start balance = accumulated balance from ALL historical transactions
     const allIncome = txs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const allExpense = txs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
     let balance = allIncome - allExpense;
     const chartData: ForecastData["cashFlowData"] = [];
 
     for (let d = 1; d <= days; d++) {
-      const variance = 1 + (Math.sin(d * 0.3) * 0.08); // smoother variance than random
+      const variance = 1 + (Math.sin(d * 0.3) * 0.08);
       const incomeToday = dailyIncome * variance;
       const expenseToday = dailyExpense * (1 + Math.cos(d * 0.2) * 0.05);
       balance += incomeToday - expenseToday;
@@ -87,7 +86,6 @@ export default function ForecastPage() {
     const projectedExpenses = Math.round(dailyExpense * days);
     const dataPoints = recentTxs.length;
 
-    // Confidence based on data quality
     const baseConfidence = days === 30 ? 85 : days === 60 ? 70 : 58;
     const dataBonus = Math.min(15, dataPoints / 2);
     const confidence = Math.min(95, Math.round(baseConfidence + dataBonus));
@@ -120,6 +118,10 @@ export default function ForecastPage() {
   }, [period, generateProjection]);
 
   useEffect(() => { if (data) generate(); }, [data, generate]);
+
+  if (!hasFeature("forecast")) {
+    return <UpgradePrompt feature="Previsão Financeira" requiredPlan="Business" description="O sistema de forecast projeta receitas, despesas e saldo para os próximos 30, 60 e 90 dias. Disponível a partir do plano Business." />;
+  }
 
   const fetchAiAnalysis = async () => {
     if (!forecast || !data) return;

@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useFinancialData } from "@/hooks/useFinancialData";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
+import { TransactionLimitBanner } from "@/components/UpgradePrompt";
 
 const statusStyles: Record<string, string> = {
   paid: "bg-primary/10 text-primary border-primary/20",
@@ -27,6 +29,7 @@ const statusLabels: Record<string, string> = {
 
 export default function TransactionsPage() {
   const { data, isLoading, refetch } = useFinancialData();
+  const { canAddTransaction, incrementTransactionCount, transactionsUsed, transactionsLimit } = useSubscription();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("Todos");
@@ -55,6 +58,7 @@ export default function TransactionsPage() {
   const handleSave = async () => {
     if (!data?.companyId) { toast.error("Nenhuma empresa cadastrada."); return; }
     if (!newTx.description || !newTx.amount) { toast.error("Preencha descrição e valor."); return; }
+    if (!canAddTransaction()) { toast.error("Limite de transações atingido. Faça upgrade do seu plano."); return; }
     setSaving(true);
     try {
       const { error } = await supabase.from("transactions").insert({
@@ -68,6 +72,7 @@ export default function TransactionsPage() {
         payment_status: "pending",
       });
       if (error) throw error;
+      await incrementTransactionCount();
       toast.success("Transação criada!");
       setShowNew(false);
       setNewTx({ description: "", amount: "", date: "", type: "expense", category: "Serviços", clientOrSupplier: "" });
@@ -83,6 +88,7 @@ export default function TransactionsPage() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
+      {transactionsLimit && <TransactionLimitBanner used={transactionsUsed} limit={transactionsLimit} />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Transações</h1>
