@@ -32,10 +32,6 @@ export default function AdvisorPage() {
   const { data } = useFinancialData();
   const { hasFeature } = useSubscription();
 
-  if (!hasFeature("aiAdvisor")) {
-    return <UpgradePrompt feature="AI Advisor" requiredPlan="Pro" description="O AI Advisor analisa seus dados financeiros e gera recomendações personalizadas. Disponível a partir do plano Pro." />;
-  }
-
   const buildWelcome = (): Msg => {
     if (!data || data.totalRevenue === 0) {
       return {
@@ -55,10 +51,13 @@ export default function AdvisorPage() {
   const [showStrategic, setShowStrategic] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Update welcome message when data loads
   useEffect(() => {
     setMessages([buildWelcome()]);
   }, [data]);
+
+  if (!hasFeature("aiAdvisor")) {
+    return <UpgradePrompt feature="AI Advisor" requiredPlan="Pro" description="O AI Advisor analisa seus dados financeiros e gera recomendações personalizadas. Disponível a partir do plano Pro." />;
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
