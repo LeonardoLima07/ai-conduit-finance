@@ -5,6 +5,8 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useFinancialData } from "@/hooks/useFinancialData";
+import { useSubscription } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
