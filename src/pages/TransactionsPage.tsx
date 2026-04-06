@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useFinancialData } from "@/hooks/useFinancialData";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
+import { TransactionLimitBanner } from "@/components/UpgradePrompt";
 
 const statusStyles: Record<string, string> = {
   paid: "bg-primary/10 text-primary border-primary/20",
