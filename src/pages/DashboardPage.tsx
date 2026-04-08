@@ -1,5 +1,9 @@
 import { Brain, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2, RefreshCw, Shield, Zap, Target, Wallet, CreditCard, BarChart3, Repeat, Calendar } from "lucide-react";
 import ExpenseOptimizationCard from "@/components/dashboard/ExpenseOptimizationCard";
+import SmartNotificationsCard from "@/components/dashboard/SmartNotificationsCard";
+import ProgressTrackingCard from "@/components/dashboard/ProgressTrackingCard";
+import ActionSuggestionsCard from "@/components/dashboard/ActionSuggestionsCard";
+import EngagementBanner from "@/components/dashboard/EngagementBanner";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useState, useEffect, useCallback } from "react";
@@ -118,6 +122,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
+      {/* Engagement Banner */}
+      <EngagementBanner data={data} />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
@@ -216,11 +223,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Expense Optimization Insights */}
-      <ExpenseOptimizationCard expenseData={data.expensesByCategory.length > 0 ? {
-        categories: data.expensesByCategory,
-        total: data.totalExpenses,
-      } : undefined} />
+      {/* Smart Notifications + Expense Optimization */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SmartNotificationsCard data={data} />
+        <ExpenseOptimizationCard expenseData={data.expensesByCategory.length > 0 ? {
+          categories: data.expensesByCategory,
+          total: data.totalExpenses,
+        } : undefined} />
+      </div>
+
+      {/* Progress Tracking + Action Suggestions */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ProgressTrackingCard data={data} />
+        <ActionSuggestionsCard data={data} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Expenses by Category */}
