@@ -122,6 +122,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
+      {/* Engagement Banner */}
+      <EngagementBanner data={data} />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
