@@ -223,11 +223,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Expense Optimization Insights */}
-      <ExpenseOptimizationCard expenseData={data.expensesByCategory.length > 0 ? {
-        categories: data.expensesByCategory,
-        total: data.totalExpenses,
-      } : undefined} />
+      {/* Smart Notifications + Expense Optimization */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SmartNotificationsCard data={data} />
+        <ExpenseOptimizationCard expenseData={data.expensesByCategory.length > 0 ? {
+          categories: data.expensesByCategory,
+          total: data.totalExpenses,
+        } : undefined} />
+      </div>
+
+      {/* Progress Tracking + Action Suggestions */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ProgressTrackingCard data={data} />
+        <ActionSuggestionsCard data={data} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Expenses by Category */}
