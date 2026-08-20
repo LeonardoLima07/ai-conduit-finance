@@ -29,6 +29,7 @@ import IntegrationsPage from "./pages/IntegrationsPage";
 import EducationPage from "./pages/EducationPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import ProfitPlannerPage from "./pages/ProfitPlannerPage";
+import OAuthConsent from "./pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/dashboard/education" element={<DashboardRoute><EducationPage /></DashboardRoute>} />
             <Route path="/dashboard/feedback" element={<DashboardRoute><FeedbackPage /></DashboardRoute>} />
             <Route path="/dashboard/profit-planner" element={<DashboardRoute><ProfitPlannerPage /></DashboardRoute>} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
