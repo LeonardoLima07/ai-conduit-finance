@@ -13,6 +13,13 @@ interface AuthContext {
 
 const AuthCtx = createContext<AuthContext | undefined>(undefined);
 
+/** Same-origin relative path to return to after auth (used by the OAuth consent flow). */
+export function safeNextPath(fallback = "/dashboard") {
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  return fallback;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -38,7 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}${safeNextPath()}`,
+      },
     });
     return { error: error?.message ?? null };
   };
