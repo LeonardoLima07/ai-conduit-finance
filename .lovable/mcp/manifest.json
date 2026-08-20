@@ -1,0 +1,286 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://vdjwywrtobhqpbbpvogr.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "contuit-ai-finance-copilot",
+      "version": "0.1.0",
+      "title": "Contuit: AI Finance Copilot"
+    },
+    "tools": [
+      {
+        "name": "get_company",
+        "title": "Get company profile",
+        "description": "Return the signed-in user's company profile (name, industry, employees, goals).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "financial_summary",
+        "title": "Financial summary",
+        "description": "Summarize revenue, expenses, profit, margin and top expense categories for a period (default: last 30 days).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "days": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 365
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Look-back window in days (default 30)."
+            }
+          },
+          "required": [
+            "days"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_transactions",
+        "title": "List transactions",
+        "description": "List the signed-in user's income and expense transactions, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "income",
+                    "expense"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by transaction type, or null for both."
+            },
+            "from": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Start date (YYYY-MM-DD) or null."
+            },
+            "to": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "End date (YYYY-MM-DD) or null."
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max rows (default 50)."
+            }
+          },
+          "required": [
+            "type",
+            "from",
+            "to",
+            "limit"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_transaction",
+        "title": "Create transaction",
+        "description": "Record a new income or expense transaction for the signed-in user's company.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "description": "What the transaction is for."
+            },
+            "category": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Category, e.g. Marketing, Salários."
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Amount in BRL."
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense"
+              ],
+              "description": "income or expense."
+            },
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Date (YYYY-MM-DD) or null for today."
+            },
+            "payment_status": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "paid",
+                    "pending"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Payment status or null for paid."
+            },
+            "client_or_supplier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Client or supplier name, or null."
+            }
+          },
+          "required": [
+            "description",
+            "category",
+            "amount",
+            "type",
+            "date",
+            "payment_status",
+            "client_or_supplier"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_invoices",
+        "title": "List invoices",
+        "description": "List the signed-in user's invoices with amount, tax, status and due date.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Filter by status (e.g. paid, pending) or null for all."
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max rows (default 50)."
+            }
+          },
+          "required": [
+            "status",
+            "limit"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_recurring_transactions",
+        "title": "List recurring commitments",
+        "description": "List recurring income and expenses (salaries, rent, subscriptions) with next execution dates.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "only_active": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Return only active recurrences (default true)."
+            }
+          },
+          "required": [
+            "only_active"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

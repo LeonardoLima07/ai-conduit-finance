@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, safeNextPath } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -30,7 +30,7 @@ export default function LoginPage() {
       } else {
         const { error } = await signIn(email, password);
         if (error) { toast.error(error); return; }
-        navigate("/dashboard");
+        navigate(safeNextPath());
       }
     } finally { setLoading(false); }
   };
